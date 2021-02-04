@@ -30,15 +30,16 @@ public class FloorSubsystem implements Runnable {
     private int floorNumber;
     private int elevatorButton;
     private Scheduler scheduler;
+    private String inputFile;
 
-    public FloorSubsystem(Scheduler scheduler){
+    public FloorSubsystem(Scheduler scheduler, String inputFile){
         this.scheduler = scheduler;
-
+        this.inputFile = inputFile;
     }
 
 
-    public void readInputFile(String file) throws IOException, ParseException {
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
+    public void readInputFile() throws IOException, ParseException {
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile));
         String[] input = null;
         String result = null;
         for(String texts = bufferedReader.readLine(); texts != null; texts = bufferedReader.readLine()) {
@@ -88,14 +89,21 @@ public class FloorSubsystem implements Runnable {
 
     @Override
     public void run() {
-        //scheduler.receiveInfo();
+        try {
+            this.readInputFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
 
     }
 
     public static void main(String[] args) throws IOException, ParseException {
         Scheduler scheduler = new Scheduler();
-        FloorSubsystem f = new FloorSubsystem(scheduler);
-        f.readInputFile("elevatorInputs.txt");
+        FloorSubsystem f = new FloorSubsystem(scheduler, "elevatorInputs.txt");
+        f.readInputFile();
         //System.out.println(f.readInputFile("elevatorInputs.txt"));
     }
 }
