@@ -77,7 +77,7 @@ public class FloorSubsystem implements Runnable {
         Date date1 = format.parse(dateString);
         Timestamp ts = new Timestamp(date1.getTime());
         this.time = ts;
-        System.out.println(this.time);
+        System.out.println("Time: "+this.time);
         //return time;
         // return format.parse(dateString);
     }
@@ -96,7 +96,7 @@ public class FloorSubsystem implements Runnable {
         }else{
             this.direction = 0;
         }
-        System.out.println(this.floorNumber+" "+this.direction+" "+this.elevatorButton);
+        System.out.println("Floor: "+this.floorNumber+"\n"+"Floor Button: "+this.direction+"\n"+"Car Button: "+this.elevatorButton);
     }
 
     /**
@@ -123,7 +123,7 @@ public class FloorSubsystem implements Runnable {
             this.currentElevatorFloor = scheduler.getCurrentFloor();
             this.direction = scheduler.getDirection();
         }
-        System.out.println("\nFloor Data--------------------------------------------------------------------");
+        System.out.println("\nFloor Data from Scheduler--------------------------------------------------------------------");
         this.notifyFloor(floor);
 
     }

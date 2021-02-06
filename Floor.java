@@ -61,11 +61,11 @@ public class Floor {
     public synchronized void turnOnFloorLamps(int currentElevatorFloor, int direction){
         if(direction == 1){
             this.setUpLamp(true);
-            System.out.println("Elevator is coming down from "+ currentElevatorFloor);
+            System.out.println("Elevator is arriving from "+ currentElevatorFloor);
         }
         else{
             this.setDownLamp(true);
-            System.out.println("Elevator is going up from "+ currentElevatorFloor);
+            System.out.println("Elevator is arriving from "+ currentElevatorFloor);
         }
         try {
             Thread.sleep(1000);

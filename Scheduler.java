@@ -1,3 +1,5 @@
+import elevator.Elevator;
+
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,7 +48,7 @@ public class Scheduler implements Runnable {
 
 
     /**
-     * checks if elevator data has been received
+     * checks if elevator data is available
      * @return
      */
     public synchronized boolean checkData(){
@@ -77,7 +79,7 @@ public class Scheduler implements Runnable {
         inputInfo.put("elevatorButton", elevatorButton);
         dataReceived = true;
 
-        System.out.println("File input data -------------------------------------------------------------");
+        System.out.println("\nScheduler data from File input -------------------------------------------------------------");
 
         while (inputInfo.isEmpty()) {
             try {
@@ -125,20 +127,28 @@ public class Scheduler implements Runnable {
                 System.err.println(e);
             }
         }
+        System.out.println("\nScheduler data from ElevatorSubsystem---------------------------------------------");
+
         if (this.direction == 1) {
-            System.out.println("Elevator is coming DOWN from floor " + this.floorNumber);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if (currentFloor > floorNumber) {
+                System.out.println("Elevator is coming DOWN from floor " + this.currentFloor);
             }
+            if(currentFloor < floorNumber){
+                System.out.println("Elevator is going UP from floor " + this.currentFloor);
+            }
+
         } else {
-            System.out.println("Elevator is going up to floor " + this.floorNumber);
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if(currentFloor < floorNumber) {
+                System.out.println("Elevator is going UP from floor " + this.currentFloor);
             }
+            if(currentFloor > floorNumber){
+                System.out.println("Elevator is going DOWN from floor " + this.currentFloor);
+            }
+        }
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
         notifyAll();
     }

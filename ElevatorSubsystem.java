@@ -4,7 +4,7 @@ import java.util.Random;
 
 public class ElevatorSubsystem implements Runnable{
 
-    private int currentFloor;
+    private int currentElevatorFloor;
     private int destinationFloor;
     private int directionButton;
     private int floorButton;
@@ -15,7 +15,7 @@ public class ElevatorSubsystem implements Runnable{
         this.scheduler = scheduler;
         elevator = new Elevator();
         Random rand = new Random();
-        currentFloor = rand.nextInt(6);
+        currentElevatorFloor = rand.nextInt(6);
 
     }
 
@@ -41,7 +41,7 @@ public class ElevatorSubsystem implements Runnable{
      */
     public void notifyElevator(Elevator e){
         e.turnOnLamps(this.destinationFloor, this.directionButton);
-        e.startMotor(this.destinationFloor, this.directionButton);
+        e.startMotor(this.destinationFloor, this.directionButton, this.currentElevatorFloor, this.floorButton);
 
     }
 
@@ -52,10 +52,10 @@ public class ElevatorSubsystem implements Runnable{
             this.floorButton = scheduler.getFloorNumber();
             this.directionButton = scheduler.getDirection();
         }
-        System.out.println("\nElevator Data-------------------------------------------------------------");
+        System.out.println("\nElevator Data from Scheduler-------------------------------------------------------------");
         this.notifyElevator(elevator);
         scheduler.notifyScheduler(true);
-        scheduler.receiveElevatorData(this.currentFloor, this.directionButton);
+        scheduler.receiveElevatorData(this.currentElevatorFloor, this.directionButton);
         //System.out.println(this.destinationFloor+" "+this.directionButton+" "+this.floorButton);
     }
 }
