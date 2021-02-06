@@ -1,5 +1,4 @@
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,11 +9,30 @@ public class Scheduler implements Runnable {
     private int direction;
     private int floorNumber;
     private int elevatorButton;
+    private int numberOfElevators;
+    private ElevatorSubsystem subsystem;
+    private elevator.Elevator elevator;
     private Map<String, Integer> inputInfo;
 
-    public Scheduler() {
+    public Scheduler(elevator.Elevator elevator) {
         inputInfo = new HashMap();
+        this.elevator = elevator;
+
     }
+
+
+    public int getDirection(){
+        return this.direction;
+    }
+
+    public int getFloorNumber(){
+        return this.floorNumber;
+    }
+
+    public int getElevatorButton(){
+        return this.elevatorButton;
+    }
+
 
 
     /**
@@ -41,9 +59,21 @@ public class Scheduler implements Runnable {
         notifyAll();
     }
 
+    public synchronized boolean askForInput(){
+        while(inputInfo.isEmpty()){
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                System.err.println(e);
+            }
+        }
+        notifyAll();
+        return true;
+    }
+
     @Override
     public void run() {
-
+       // subsystem
 
     }
 }
