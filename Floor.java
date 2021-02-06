@@ -53,6 +53,11 @@ public class Floor {
         return downLamp;
     }
 
+    /**
+     * notifies the floor of the arrival of the elevator
+     * @param currentElevatorFloor
+     * @param direction
+     */
     public synchronized void turnOnFloorLamps(int currentElevatorFloor, int direction){
         if(direction == 1){
             this.setUpLamp(true);

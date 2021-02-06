@@ -44,6 +44,11 @@ public class Scheduler implements Runnable {
         return currentFloor;
     }
 
+
+    /**
+     * checks if elevator data has been received
+     * @return
+     */
     public synchronized boolean checkData(){
         while (schedulerNotified == false) {
             try {
@@ -100,6 +105,12 @@ public class Scheduler implements Runnable {
         notifyAll();
     }
 
+
+    /**
+     * this method gets the data in the elevator subsystem
+     * @param currentFloor
+     * @param direction
+     */
     public synchronized void receiveElevatorData(int currentFloor, int direction) {
         this.currentFloor = currentFloor;
         this.direction = direction;
@@ -133,6 +144,10 @@ public class Scheduler implements Runnable {
     }
 
 
+    /**
+     * this method returns true if the scheduler has the input files
+     * @return
+     */
     public synchronized boolean askForInput(){
         while(inputInfo.isEmpty()){
             try {
@@ -145,6 +160,10 @@ public class Scheduler implements Runnable {
         return true;
     }
 
+    /**
+     * returns true if scheduler contains the elevator data
+     * @return
+     */
     public synchronized boolean askForElevatorData(){
         while(elevatorData.isEmpty()){
             try {
@@ -157,6 +176,11 @@ public class Scheduler implements Runnable {
         return true;
     }
 
+    /**
+     * notifies the scheduler when the elevator files have successfully been received
+     * @param b
+     * @return
+     */
     public boolean notifyScheduler(boolean b){
         this.schedulerNotified = b;
         return schedulerNotified;

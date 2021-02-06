@@ -35,6 +35,10 @@ public class ElevatorSubsystem implements Runnable{
         this.floorButton = floorButton;
     }
 
+    /**
+     * starts the operation of the elevator
+     * @param e
+     */
     public void notifyElevator(Elevator e){
         e.turnOnLamps(this.destinationFloor, this.directionButton);
         e.startMotor(this.destinationFloor, this.directionButton);

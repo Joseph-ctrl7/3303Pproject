@@ -44,6 +44,11 @@ public class FloorSubsystem implements Runnable {
     }
 
 
+    /**
+     * reads in the input text file
+     * @throws IOException
+     * @throws ParseException
+     */
     public synchronized void readInputFile() throws IOException, ParseException {
         BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile));
         String[] input = null;
@@ -94,6 +99,10 @@ public class FloorSubsystem implements Runnable {
         System.out.println(this.floorNumber+" "+this.direction+" "+this.elevatorButton);
     }
 
+    /**
+     * notifies floor about the location of the elevator
+     * @param f
+     */
     public void notifyFloor(Floor f){
         f.turnOnFloorLamps(currentElevatorFloor, direction);
     }
