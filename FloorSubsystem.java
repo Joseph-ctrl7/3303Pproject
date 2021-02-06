@@ -1,3 +1,5 @@
+import elevator.Elevator;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -28,17 +30,21 @@ public class FloorSubsystem implements Runnable {
     private Timestamp time;
     private int direction;
     private int floorNumber;
+    private Floor floor;
+    private int currentElevatorFloor;
     private int elevatorButton;
     private Scheduler scheduler;
     private String inputFile;
+    //private
 
     public FloorSubsystem(Scheduler scheduler, String inputFile){
         this.scheduler = scheduler;
         this.inputFile = inputFile;
+        floor = new Floor();
     }
 
 
-    public void readInputFile() throws IOException, ParseException {
+    public synchronized void readInputFile() throws IOException, ParseException {
         BufferedReader bufferedReader = new BufferedReader(new FileReader(inputFile));
         String[] input = null;
         String result = null;
@@ -50,6 +56,7 @@ public class FloorSubsystem implements Runnable {
             //input = new String[] {s.next(), s.next(), s.next(), s.next()};
         }
         //return result;
+        notifyAll();
     }
 
     /**
@@ -87,6 +94,10 @@ public class FloorSubsystem implements Runnable {
         System.out.println(this.floorNumber+" "+this.direction+" "+this.elevatorButton);
     }
 
+    public void notifyFloor(Floor f){
+        f.turnOnFloorLamps(currentElevatorFloor, direction);
+    }
+
     @Override
     public void run() {
         try {
@@ -96,14 +107,31 @@ public class FloorSubsystem implements Runnable {
         } catch (ParseException e) {
             e.printStackTrace();
         }
+
         scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
+
+        if(scheduler.askForElevatorData() == true){
+            this.currentElevatorFloor = scheduler.getCurrentFloor();
+            this.direction = scheduler.getDirection();
+        }
+        System.out.println("\nFloor Data--------------------------------------------------------------------");
+        this.notifyFloor(floor);
 
     }
 
     public static void main(String[] args) throws IOException, ParseException {
-        Scheduler scheduler = new Scheduler();
+        Elevator elevator = new Elevator();
+        Scheduler scheduler = new Scheduler(elevator);
         FloorSubsystem f = new FloorSubsystem(scheduler, "elevatorInputs.txt");
-        f.readInputFile();
+        ElevatorSubsystem e = new ElevatorSubsystem(scheduler);
+        //f.readInputFile();
+
+        Thread floorSubsystem = new Thread(f);
+        Thread schedulerThread = new Thread(scheduler);
+        Thread elevatorSystem = new Thread(e);
+        floorSubsystem.start();
+        schedulerThread.start();
+        elevatorSystem.start();
         //System.out.println(f.readInputFile("elevatorInputs.txt"));
     }
 }
