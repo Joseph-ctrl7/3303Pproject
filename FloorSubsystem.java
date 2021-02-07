@@ -117,9 +117,9 @@ public class FloorSubsystem implements Runnable {
             e.printStackTrace();
         }
 
-        scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
+        scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);    //scheduler is updated
 
-        if(scheduler.askForElevatorData() == true){
+        if(scheduler.askForElevatorData() == true){         //sends current elevator floor and direction
             this.currentElevatorFloor = scheduler.getCurrentFloor();
             this.direction = scheduler.getDirection();
         }
