@@ -15,6 +15,13 @@ Scheduler - This class is the bridge between the Elevator and the Floor systems.
 
 TestCases - This class is used to run tests on the whole system.
 
+Set Up Instructions: 
+To run the system on a computer, the Main method is located in the Floor class : Run > Main as a Java Application
+When prompted to input values: Select -> input.txt
+When prompted to select a request file: Select -> elevatorInputs.txt
+
+
+
 System Flow:
 -	Floor requests an elevator and sends it to the scheduler
 -	Scheduler decides which elevator to send the request
