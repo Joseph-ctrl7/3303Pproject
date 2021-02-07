@@ -47,15 +47,15 @@ public class ElevatorSubsystem implements Runnable{
 
     @Override
     public void run() {
-        if(scheduler.askForInput() == true){
+        if(scheduler.askForInput() == true){        //updates elevator tasks if there is input in the scheduler
             this.destinationFloor = scheduler.getElevatorButton();
             this.floorButton = scheduler.getFloorNumber();
             this.directionButton = scheduler.getDirection();
         }
         System.out.println("\nElevator Data from Scheduler-------------------------------------------------------------");
-        this.notifyElevator(elevator);
+        this.notifyElevator(elevator);      //turns the lamps of and moves the elevator according to the updates from the scheduler
         scheduler.notifyScheduler(true);
-        scheduler.receiveElevatorData(this.currentElevatorFloor, this.directionButton);
+        scheduler.receiveElevatorData(this.currentElevatorFloor, this.directionButton);     //schuduler recieves the elevators current floor and direction
         //System.out.println(this.destinationFloor+" "+this.directionButton+" "+this.floorButton);
     }
 }
