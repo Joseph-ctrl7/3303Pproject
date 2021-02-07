@@ -81,21 +81,21 @@ public class Scheduler implements Runnable {
 
         System.out.println("\nScheduler data from File input -------------------------------------------------------------");
 
-        while (inputInfo.isEmpty()) {
+        while (inputInfo.isEmpty()) {       //waits until input hashmap is updated
             try {
                 wait();
             } catch (InterruptedException e) {
                 System.err.println(e);
             }
         }
-        if(this.direction == 1) {
+        if(this.direction == 1) {       //if passenger destination direction is up
             System.out.println("Passenger would like to go UP to floor " + this.elevatorButton + " from floor " + floorNumber);
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }else {
+        }else {     //if passenger destination direction is down
             System.out.println("Passenger would like to go DOWN to floor " + this.elevatorButton + " from floor " + floorNumber);
             try {
                 Thread.sleep(1000);
@@ -120,7 +120,7 @@ public class Scheduler implements Runnable {
         elevatorData.put("currentFloor", currentFloor);
         elevatorData.put("direction", direction);
 
-        while (elevatorData.isEmpty()) {
+        while (elevatorData.isEmpty()) {        //waits until elevator data hashmap is updated
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -129,7 +129,7 @@ public class Scheduler implements Runnable {
         }
         System.out.println("\nScheduler data from ElevatorSubsystem---------------------------------------------");
 
-        if (this.direction == 1) {
+        if (this.direction == 1) {      //announces which direction elevator is going if passenger destination direction is up
             if (currentFloor > floorNumber) {
                 System.out.println("Elevator is coming DOWN from floor " + this.currentFloor);
             }
@@ -137,7 +137,7 @@ public class Scheduler implements Runnable {
                 System.out.println("Elevator is going UP from floor " + this.currentFloor);
             }
 
-        } else {
+        } else {    //announces which direction elevator is going if passenger destination direction is down
             if(currentFloor < floorNumber) {
                 System.out.println("Elevator is going UP from floor " + this.currentFloor);
             }
@@ -159,7 +159,7 @@ public class Scheduler implements Runnable {
      * @return
      */
     public synchronized boolean askForInput(){
-        while(inputInfo.isEmpty()){
+        while(inputInfo.isEmpty()){             //waits until input hashmap is updated
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -175,7 +175,7 @@ public class Scheduler implements Runnable {
      * @return
      */
     public synchronized boolean askForElevatorData(){
-        while(elevatorData.isEmpty()){
+        while(elevatorData.isEmpty()){      //waits until elevator data hashmap is updated
             try {
                 wait();
             } catch (InterruptedException e) {
