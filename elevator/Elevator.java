@@ -74,7 +74,13 @@ public class Elevator {
     public synchronized void turnOnLamps(int destination, int direction){
         this.directionLamp = true;
         this.elevatorLamp = true;
-        System.out.println("lamps "+destination + " and "+ direction+" are on");
+        if(direction == 1){
+            System.out.println("lamps "+destination + " and UP are on");
+        }
+        else{
+            System.out.println("lamps "+destination + " and DOWN are on");
+        }
+
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -89,19 +95,36 @@ public class Elevator {
 
     }
 
-    public synchronized void startMotor(int destination, int direction) {
+    public synchronized void startMotor(int destination, int direction, int currentElevatorFloor, int floorNumber) {
+        System.out.println("Elevator is currently at floor "+currentElevatorFloor);
+        if(currentElevatorFloor == floorNumber){
+            System.out.println("opening doors");
+        }
         if (direction == 1){
-            this.state = State.MOVING_UP;
-            System.out.println("elevator is going UP");
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if(currentElevatorFloor > floorNumber) {
+                this.state = State.MOVING_DOWN;
+                System.out.println("elevator is going DOWN");
+            }
+            if(currentElevatorFloor < floorNumber){
+                this.state = State.MOVING_UP;
+                System.out.println("elevator is going UP");
             }
         }
         else{
-            this.state = State.MOVING_DOWN;
-            System.out.println("elevator is going DOWN");
+            if(currentElevatorFloor < floorNumber) {
+                this.state = State.MOVING_UP;
+                System.out.println("elevator is going UP");
+            }
+            if(currentElevatorFloor > floorNumber){
+                this.state = State.MOVING_DOWN;
+                System.out.println("elevator is going DOWN");
+            }
+        }
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
