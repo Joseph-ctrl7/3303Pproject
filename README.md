@@ -1,5 +1,5 @@
 3303 Project
-Contributors: Joseph Anyia, Israel Okonkwo, Tolu Ajisola, 
+Contributors: Joseph Anyia, Israel Okonkwo, Toluwalope Ajisola, 
               Mehdi Khan, and Amith Kumar Das Orko
 Classes: 
 
