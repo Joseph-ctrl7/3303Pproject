@@ -12,3 +12,17 @@ Floor - This class is controlled by the Floorsubsystem. It handles floor request
 FloorSubsystem- This class manages sending and receiving of requests from the Scheduler. The FloorSubsystem reads in events using the following format : Time, floor or elevator number, and button. 
 
 Scheduler - This class is the bridge between the Elevator and the Floor systems. It receives request from the FloorSubsystem and also replies to requests from the Elevator when there is work to do.
+
+TestCases - This class is used to run tests on the whole system.
+
+System Flow:
+-	Floor requests an elevator and sends it to the scheduler
+-	Scheduler decides which elevator to send the request
+-	Scheduler relays request to the elevator subsystem
+-	Elevator subsystem relays it to the appropriate elevator
+-	Elevator that receives the request responds to the scheduler and updates it about it's status
+
+Testing
+Run the test cases in Eclipse. On Eclipse: Run > TestCases.java
+All Tests should pass.
+
