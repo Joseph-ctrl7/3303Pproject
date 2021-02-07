@@ -70,7 +70,11 @@ public class Elevator {
         return pressedButtons;
     }
 
-
+    /**
+     * This method turns on the lamps for the destination and direction
+     * @param destination
+     * @param direction
+     */
     public synchronized void turnOnLamps(int destination, int direction){
         this.directionLamp = true;
         this.elevatorLamp = true;
@@ -88,6 +92,11 @@ public class Elevator {
         }
     }
 
+    /**
+     * This method turns off the lamps for the destination and direction
+     * @param destination
+     * @param direction
+     */
     public void turnOffLamps(int destination, int direction){
         this.directionLamp = false;
         this.elevatorLamp = false;
@@ -95,12 +104,19 @@ public class Elevator {
 
     }
 
+    /**
+     * This method starts the motor to move the elevator
+     * @param destination
+     * @param direction
+     * @param currentElevatorFloor
+     * @param floorNumber
+     */
     public synchronized void startMotor(int destination, int direction, int currentElevatorFloor, int floorNumber) {
         System.out.println("Elevator is currently at floor "+currentElevatorFloor);
-        if(currentElevatorFloor == floorNumber){
+        if(currentElevatorFloor == floorNumber){       //if the elevator is that the right floor
             System.out.println("opening doors");
         }
-        if (direction == 1){
+        if (direction == 1){    //if the destination direction is up
             if(currentElevatorFloor > floorNumber) {
                 this.state = State.MOVING_DOWN;
                 System.out.println("elevator is going DOWN");
@@ -110,7 +126,7 @@ public class Elevator {
                 System.out.println("elevator is going UP");
             }
         }
-        else{
+        else{   //if the destination direction is down
             if(currentElevatorFloor < floorNumber) {
                 this.state = State.MOVING_UP;
                 System.out.println("elevator is going UP");
