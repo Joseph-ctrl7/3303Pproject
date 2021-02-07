@@ -3,4 +3,5 @@ Group Roles: Iteration 1
 Amith Kumar Das Orko: Coding, Sequence diagram
 Israel Okonkwo : README.txt, coding ideas.
 Joseph Anyia: Coding
+Toluwalope Ajisola: UML Class diagram
 
