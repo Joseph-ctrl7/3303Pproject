@@ -1,0 +1,7 @@
+Group Roles: Iteration 1
+
+Amith Kumar Das Orko: Coding, Sequence diagram, testing
+Israel Okonkwo : README.txt, coding ideas, testing
+Joseph Anyia: Coding, testing
+Toluwalope Ajisola: UML Class diagram, testing
+Mehdi Khan: coding ideas, comments, testing
