@@ -68,7 +68,7 @@ public class Floor {
      * @param direction, boolean. 1 when going up, 0 when going down
      */
     public synchronized void turnOnFloorLamps(int currentElevatorFloor, int direction){
-        if(direction == 1){
+        if(direction == 1){         //checks if elevator is going up
             this.setUpLamp(true);
             System.out.println("Elevator is arriving from "+ currentElevatorFloor);
         }
