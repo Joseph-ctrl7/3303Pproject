@@ -1,4 +1,3 @@
-import elevator.Elevator;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -7,18 +6,18 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Scanner;
 
 import javax.security.auth.login.AccountException;
 
 /**
- *
- */
-
-/**
- * @author janyi
+ * @author: Joseph Anyia, Amith Kumar Das Orko, Tolu Ajisola,
+ *          Israel Okonkwo, Mehdi Khan
  *
  */
 public class FloorSubsystem implements Runnable {
@@ -35,13 +34,46 @@ public class FloorSubsystem implements Runnable {
     private int elevatorButton;
     private Scheduler scheduler;
     private String inputFile;
-    //private
+    private Map<String, Integer> inputInfo;
+    private ArrayList<Integer> elevatorInfo;
+
 
     public FloorSubsystem(Scheduler scheduler, String inputFile){
         this.scheduler = scheduler;
         this.inputFile = inputFile;
+        inputInfo = new HashMap<String, Integer>();
+        elevatorInfo = new ArrayList<>();
         floor = new Floor();
     }
+
+
+    public int getCurrentFloor() {
+        return this.currentElevatorFloor;
+    }
+
+    public Timestamp getTime() {
+        return this.time;
+    }
+
+    public int getDirection() {
+        return this.direction;
+    }
+
+    public int getElevatorButton() {
+        return this.elevatorButton;
+    }
+
+    public int getFloorNumber() {
+        return this.floorNumber;
+    }
+
+    public boolean checkIfEmpty() {
+        if(elevatorInfo.isEmpty()) {
+            return true;
+        }
+        return false;
+    }
+
 
 
     /**
@@ -57,16 +89,23 @@ public class FloorSubsystem implements Runnable {
             Scanner s = new Scanner(texts).useDelimiter(" ");
             this.convertTime(s.next());
             this.convertInfoToInt(s.next(), s.next(), s.next());
-            //result = s.next();
-            //input = new String[] {s.next(), s.next(), s.next(), s.next()};
+
         }
-        //return result;
+
         notifyAll();
+    }
+
+    public boolean isEmpty() {
+        if (inputInfo.isEmpty()) {
+            return true;
+        }else {
+            return false;
+        }
     }
 
     /**
      * this method converts the time gotten from the input to a timestamp
-     * (it still shows the date for some reason ¯\_(ツ)_/¯)
+     * (it still shows the date for some reason )
      *
      * @param dateString
      * @return
@@ -78,8 +117,7 @@ public class FloorSubsystem implements Runnable {
         Timestamp ts = new Timestamp(date1.getTime());
         this.time = ts;
         System.out.println("Time: "+this.time);
-        //return time;
-        // return format.parse(dateString);
+
     }
 
     /**
@@ -96,6 +134,9 @@ public class FloorSubsystem implements Runnable {
         }else{
             this.direction = 0;
         }
+        inputInfo.put("floorNumber", this.floorNumber);
+        inputInfo.put("direction", this.direction);
+        inputInfo.put("elevatorButton", this.elevatorButton);
         System.out.println("Floor: "+this.floorNumber+"\n"+"Floor Button: "+this.direction+"\n"+"Car Button: "+this.elevatorButton);
     }
 
@@ -106,6 +147,16 @@ public class FloorSubsystem implements Runnable {
     public void notifyFloor(Floor f){
         f.turnOnFloorLamps(currentElevatorFloor, direction);
     }
+
+
+    public void receiveSchedulerInfo() {
+        this.currentElevatorFloor = scheduler.getCurrentFloor();
+        this.direction = scheduler.getDirection();
+
+        elevatorInfo.add(this.currentElevatorFloor);
+        elevatorInfo.add(this.direction);
+    }
+
 
     @Override
     public void run() {
@@ -120,8 +171,7 @@ public class FloorSubsystem implements Runnable {
         scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
 
         if(scheduler.askForElevatorData() == true){
-            this.currentElevatorFloor = scheduler.getCurrentFloor();
-            this.direction = scheduler.getDirection();
+            this.receiveSchedulerInfo();
         }
         System.out.println("\nFloor Data from Scheduler--------------------------------------------------------------------");
         this.notifyFloor(floor);
@@ -144,3 +194,4 @@ public class FloorSubsystem implements Runnable {
         //System.out.println(f.readInputFile("elevatorInputs.txt"));
     }
 }
+

@@ -1,4 +1,13 @@
-import elevator.Elevator;
+/**
+ *
+ */
+
+/**
+ * @author: Joseph Anyia, Amith Kumar Das Orko, Tolu Ajisola,
+ *          Israel Okonkwo, Mehdi Khan
+ *
+ */
+
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -7,7 +16,6 @@ import java.util.Random;
 
 public class Scheduler implements Runnable {
 
-    //private Elevator elevator;
     private Timestamp time;
     private boolean dataReceived = false;
     private int direction;
@@ -16,12 +24,12 @@ public class Scheduler implements Runnable {
     private int currentFloor;
     private int numberOfElevators;
     private ElevatorSubsystem subsystem;
-    private elevator.Elevator elevator;
+    private Elevator elevator;
     private Map<String, Integer> inputInfo;
     private Map<String, Integer> elevatorData;
     private boolean schedulerNotified = false;
 
-    public Scheduler(elevator.Elevator elevator) {
+    public Scheduler(Elevator elevator) {
         inputInfo = new HashMap();
         elevatorData = new HashMap();
         this.elevator = elevator;
@@ -44,6 +52,13 @@ public class Scheduler implements Runnable {
 
     public int getCurrentFloor(){
         return currentFloor;
+    }
+
+    public boolean checkIfEmpty() {
+        if(inputInfo.isEmpty()) {
+            return true;
+        }
+        return false;
     }
 
 
@@ -81,7 +96,7 @@ public class Scheduler implements Runnable {
 
         System.out.println("\nScheduler data from File input -------------------------------------------------------------");
 
-        while (inputInfo.isEmpty()) {
+        while (inputInfo.isEmpty()) { //waits until input hashmap is updated
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -120,7 +135,7 @@ public class Scheduler implements Runnable {
         elevatorData.put("currentFloor", currentFloor);
         elevatorData.put("direction", direction);
 
-        while (elevatorData.isEmpty()) {
+        while (elevatorData.isEmpty()) {  //waits until elevator data hashmap is updated
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -133,7 +148,7 @@ public class Scheduler implements Runnable {
             if (currentFloor > floorNumber) {
                 System.out.println("Elevator is coming DOWN from floor " + this.currentFloor);
             }
-            if(currentFloor < floorNumber){
+            else{
                 System.out.println("Elevator is going UP from floor " + this.currentFloor);
             }
 
@@ -141,15 +156,16 @@ public class Scheduler implements Runnable {
             if(currentFloor < floorNumber) {
                 System.out.println("Elevator is going UP from floor " + this.currentFloor);
             }
-            if(currentFloor > floorNumber){
+            else{
                 System.out.println("Elevator is going DOWN from floor " + this.currentFloor);
             }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+
         notifyAll();
     }
 
@@ -199,10 +215,7 @@ public class Scheduler implements Runnable {
     @Override
     public void run() {
         this.checkData();
-        //System.out.println("done");
-
-
-       // subsystem
 
     }
 }
+

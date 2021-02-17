@@ -1,3 +1,12 @@
+/**
+ *
+ */
+
+/**
+ * @author: Joseph Anyia, Amith Kumar Das Orko, Tolu Ajisola,
+ *          Israel Okonkwo, Mehdi Khan
+ *
+ */
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -56,7 +65,7 @@ public class Floor {
     /**
      * notifies the floor of the arrival of the elevator
      * @param currentElevatorFloor
-     * @param direction
+     * @param direction, boolean. 1 when going up, 0 when going down
      */
     public synchronized void turnOnFloorLamps(int currentElevatorFloor, int direction){
         if(direction == 1){
@@ -74,3 +83,4 @@ public class Floor {
         }
     }
 }
+
