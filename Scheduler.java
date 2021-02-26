@@ -17,7 +17,9 @@ import java.util.Random;
 public class Scheduler implements Runnable {
 
     private Timestamp time;
-    private boolean dataReceived = false;
+    private boolean dataReceived = false; // if any piece of data either from elevator or floor subsystem is received
+    private boolean elevatorInfoReceived = false; //info from ElevatorSubsystem
+    private boolean floorInfoReceived = false; //info from FloorSubsystem
     private int direction;
     private int floorNumber;
     private int elevatorButton;
@@ -25,14 +27,21 @@ public class Scheduler implements Runnable {
     private int numberOfElevators;
     private ElevatorSubsystem subsystem;
     private Elevator elevator;
+    private SchedulerStates state;
+
     private Map<String, Integer> inputInfo;
     private Map<String, Integer> elevatorData;
     private boolean schedulerNotified = false;
+
+
+    public enum SchedulerStates {LISTENING, RECEIVED, ELEVATORINFO, FLOORINFO}
+
 
     public Scheduler(Elevator elevator) {
         inputInfo = new HashMap();
         elevatorData = new HashMap();
         this.elevator = elevator;
+        state = SchedulerStates.LISTENING;
 
 
     }
@@ -53,6 +62,7 @@ public class Scheduler implements Runnable {
     public int getCurrentFloor(){
         return currentFloor;
     }
+
 
     public boolean checkIfEmpty() {
         if(inputInfo.isEmpty()) {
@@ -93,6 +103,7 @@ public class Scheduler implements Runnable {
         inputInfo.put("direction", direction);
         inputInfo.put("elevatorButton", elevatorButton);
         dataReceived = true;
+        floorInfoReceived = true;
 
         System.out.println("\nScheduler data from File input -------------------------------------------------------------");
 
@@ -134,6 +145,8 @@ public class Scheduler implements Runnable {
 
         elevatorData.put("currentFloor", currentFloor);
         elevatorData.put("direction", direction);
+        dataReceived = true;
+        elevatorInfoReceived = true;
 
         while (elevatorData.isEmpty()) {  //waits until elevator data hashmap is updated
             try {
@@ -212,10 +225,43 @@ public class Scheduler implements Runnable {
         return schedulerNotified;
     }
 
+
+    /**
+     * scheduler state machine. Responsible for receiving and sending info to both
+     * the floorsubsystem and elevatorsubsystem
+     *
+     *
+     */
+    public synchronized void startSchedulerSM(){
+        switch (state){
+            case LISTENING:// scheduler listens for info from both elevator and floor subsystems
+                if(this.dataReceived == true){
+                    state = SchedulerStates.RECEIVED;
+                }
+            case RECEIVED:
+                if(this.floorInfoReceived == true){
+                    state = SchedulerStates.FLOORINFO;
+                    this.floorInfoReceived = false; //clear flag
+                }
+                if(this.elevatorInfoReceived == true){
+                    state = SchedulerStates.ELEVATORINFO;
+                    this.elevatorInfoReceived = false; //clear flag
+                }
+            case FLOORINFO:
+                checkData(); //checks to see if the scheduler has been notified by the ElevatorSubsystem(elevator subsystem thread will then start in order to receive scheduler info)
+                state = SchedulerStates.LISTENING; //returns back to listening for info
+            case ELEVATORINFO:
+                if(!elevatorData.isEmpty()){
+                    state = SchedulerStates.LISTENING;
+                }
+
+        }
+    }
+
+
     @Override
     public void run() {
-        this.checkData();
-
+        this.startSchedulerSM();
     }
 }
 

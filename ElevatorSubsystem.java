@@ -108,7 +108,7 @@ public class ElevatorSubsystem implements Runnable{
      */
     public synchronized void startElevatorSM(Elevator e) throws InterruptedException {
         switch(state){
-            case IDLE: //when elevator is idle and a request was made
+            case IDLE: //when elevator is idle and a request is made
                 if(this.elevatorInfo.contains(this.directionButton)) {
                     if (this.directionButton == 0) {
                         state = ElevatorMovingState.DOWN;
@@ -127,7 +127,7 @@ public class ElevatorSubsystem implements Runnable{
                     state = ElevatorMovingState.IDLE;
                 }
                 break;
-            case DOWN:
+            case DOWN: //when elevator is going down and arrives at its destination
                 if(e.checkIfArrived()==true){
                     e.openDoors();
                     Thread.sleep(2000);
@@ -152,7 +152,7 @@ public class ElevatorSubsystem implements Runnable{
         }
         //this.notifyElevator(elevator);  //turns the lamps of and moves the elevator according to the updates from the scheduler
         scheduler.notifyScheduler(true);
-        scheduler.receiveElevatorData(this.currentElevatorFloor, this.directionButton); //schuduler recieves the elevators current floor and direction
+        scheduler.receiveElevatorData(this.currentElevatorFloor, this.directionButton); //scheduler recieves the elevators current floor and direction
     }
 }
 
