@@ -31,6 +31,7 @@ public class Elevator {
     private Set<Integer> pressedButtons = (Set<Integer>) new HashSet<Integer>();
     private int directionButton;
     private int floorButton;
+    private int currentFloor;
 
     public Elevator() {
 
@@ -42,6 +43,7 @@ public class Elevator {
         openDoors = false;
         elevatorNotified = false;
         hasArrived = false;
+
     }
 
     public int getFloor() {
@@ -80,7 +82,12 @@ public class Elevator {
         return pressedButtons;
     }
 
-    public synchronized void openDoors(){
+    public int getCurrentFloor(){
+        return this.currentFloor;
+    }
+
+
+    public synchronized void openDoors()  {
         openDoors = true;
         System.out.println("Doors Opening........");
     }
@@ -90,10 +97,19 @@ public class Elevator {
         System.out.println("Doors Closing........");
     }
 
+    /**
+     * checks if elevator has arrived its destination
+     * @return true if elevator has arrived
+     */
     public synchronized boolean checkIfArrived(){
         return this.hasArrived;
     }
 
+    /**
+     * turns on the required lamps in the elevator
+     * @param destination
+     * @param direction
+     */
 
     public synchronized void turnOnLamps(int destination, int direction){
         this.directionLamp = true;
@@ -119,33 +135,39 @@ public class Elevator {
 
     }
 
-    public synchronized void startMotor(int destination, int direction, int currentElevatorFloor, int floorNumber) {
+    /**
+     * this method starts the motor of the elevator and takes it to the requested floor
+     * @param direction direction elevator goes
+     * @param currentElevatorFloor where the elevator is currently at
+     * @param floorNumber floor the passenger is at/ where passenger wants to go(depending on elevator functionality)
+     */
+    public synchronized void startMotor(int direction, int currentElevatorFloor, int floorNumber) {
         System.out.println("Elevator is currently at floor "+currentElevatorFloor);
         while(currentElevatorFloor != floorNumber) {
             if (direction == 1) {
                 if (currentElevatorFloor > floorNumber) {
                     this.state = State.MOVING_DOWN;
                     int nextFloor = currentElevatorFloor - 1;
-                    System.out.println("elevator is going DOWN to floor"+nextFloor);
+                    System.out.println("Elevator is going DOWN to floor "+nextFloor);
                     currentElevatorFloor--;
                 }
                 if (currentElevatorFloor < floorNumber) {
                     this.state = State.MOVING_UP;
                     int nextFloor = currentElevatorFloor + 1;
-                    System.out.println("elevator is going UP to floor"+nextFloor);
+                    System.out.println("Elevator is going UP to floor "+nextFloor);
                     currentElevatorFloor++;
                 }
             } else {
                 if (currentElevatorFloor < floorNumber) {
                     this.state = State.MOVING_UP;
                     int nextFloor = currentElevatorFloor + 1;
-                    System.out.println("elevator is going UP to floor"+nextFloor);
+                    System.out.println("Elevator is going UP to floor "+nextFloor);
                     currentElevatorFloor++;
                 }
                 if (currentElevatorFloor > floorNumber) {
                     this.state = State.MOVING_DOWN;
                     int nextFloor = currentElevatorFloor - 1;
-                    System.out.println("elevator is going DOWN to floor"+nextFloor);
+                    System.out.println("Elevator is going DOWN to floor "+nextFloor);
                     currentElevatorFloor--;
                 }
             }
@@ -153,6 +175,7 @@ public class Elevator {
         if(currentElevatorFloor == floorNumber){
             System.out.println("Elevator has arrived at floor "+floorNumber);
             hasArrived = true;
+            this.currentFloor = currentElevatorFloor;
         }
 
         try {

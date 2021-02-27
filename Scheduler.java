@@ -28,6 +28,7 @@ public class Scheduler implements Runnable {
     private ElevatorSubsystem subsystem;
     private Elevator elevator;
     private SchedulerStates state;
+    private boolean floorNotified = false;
 
     private Map<String, Integer> inputInfo;
     private Map<String, Integer> elevatorData;
@@ -64,6 +65,20 @@ public class Scheduler implements Runnable {
     }
 
 
+    /**
+     * lets scheduler know that floor has succesfully been notified about the elevator arrival. Can now commence to open doors
+     *
+     */
+    public synchronized boolean notifyAboutFloor(boolean b){
+        this.floorNotified = b;
+        return this.floorNotified;
+    }
+
+
+    /**
+     * checks if floor subsystem info was received
+     * @return false if the hashmap storing the floor subsystem info is not empty
+     */
     public boolean checkIfEmpty() {
         if(inputInfo.isEmpty()) {
             return true;
@@ -157,26 +172,8 @@ public class Scheduler implements Runnable {
         }
         System.out.println("\nScheduler data from ElevatorSubsystem---------------------------------------------");
 
-        if (this.direction == 1) {
-            if (currentFloor > floorNumber) {
-                System.out.println("Elevator is coming DOWN from floor " + this.currentFloor);
-            }
-            else{
-                System.out.println("Elevator is going UP from floor " + this.currentFloor);
-            }
-
-        } else {
-            if(currentFloor < floorNumber) {
-                System.out.println("Elevator is going UP from floor " + this.currentFloor);
-            }
-            else{
-                System.out.println("Elevator is going DOWN from floor " + this.currentFloor);
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        if(schedulerNotified == true){
+            System.out.println("Elevator was at floor "+this.currentFloor+" and has arrived at floor "+ this.floorNumber);
         }
 
         notifyAll();

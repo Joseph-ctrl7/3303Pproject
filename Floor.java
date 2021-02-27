@@ -12,14 +12,12 @@ import java.util.Date;
 
 public class Floor {
 
-    public enum directionLampState {
-        UP, DOWN
-    }
-
-    ;
-
     public int floorNum;
     public int carButton;
+    public boolean floorNotified = false;
+    private boolean upLamp;
+
+    private boolean downLamp;
 
     String timeStamp = new SimpleDateFormat("hh:mm:ss.mmm").format(new Date());
 
@@ -31,9 +29,6 @@ public class Floor {
         this.destFloor = destFloor;
     }
 
-    private boolean upLamp;
-
-    private boolean downLamp;
 
     public void setUpLamp(boolean b) {
         upLamp = b;
@@ -44,22 +39,21 @@ public class Floor {
     }
 
 
-    private directionLampState[] directionLamps;
-
-    public void setDirectionLamp(int elevatorShaft, directionLampState state) {
-        directionLamps[elevatorShaft] = state;
-    }
-
-    public directionLampState getDirectionLamp(int elevatorShaft) {
-        return directionLamps[elevatorShaft];
-    }
-
     public boolean getUpLamp() {
         return upLamp;
     }
 
     public boolean getDownLamp() {
         return downLamp;
+    }
+
+
+    /**
+     * checks if floor has been notified on elevator arrival
+     * @return true if elevator has arrived
+     */
+    public boolean checkIfNotified(){
+        return floorNotified;
     }
 
     /**
@@ -70,11 +64,11 @@ public class Floor {
     public synchronized void turnOnFloorLamps(int currentElevatorFloor, int direction){
         if(direction == 1){         //checks if elevator is going up
             this.setUpLamp(true);
-            System.out.println("Elevator is arriving from "+ currentElevatorFloor);
+            System.out.println("Elevator has arrived from "+ currentElevatorFloor);
         }
         else{
             this.setDownLamp(true);
-            System.out.println("Elevator is arriving from "+ currentElevatorFloor);
+            System.out.println("Elevator has arrived from "+ currentElevatorFloor);
         }
         try {
             Thread.sleep(1000);

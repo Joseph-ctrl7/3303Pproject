@@ -16,6 +16,7 @@ import java.util.Random;
 public class ElevatorSubsystem implements Runnable{
 
     private int currentElevatorFloor;
+    private int previousElevatorFloor;
     private int destinationFloor;
     private int directionButton;
     private int floorButton;
@@ -24,9 +25,10 @@ public class ElevatorSubsystem implements Runnable{
     private ArrayList<Integer> elevatorInfo;
     private ElevatorMovingState state;
     private ElevatorDoorState doorState;
+    private boolean operateDoors = false;
 
 
-    public enum ElevatorMovingState { UP, DOWN, IDLE};
+    public enum ElevatorMovingState {UP, DOWN, IDLE};
     public enum ElevatorDoorState {OPEN, CLOSE};
 
     public ElevatorSubsystem(Scheduler scheduler){
@@ -34,6 +36,7 @@ public class ElevatorSubsystem implements Runnable{
         elevator = new Elevator();
         elevatorInfo = new ArrayList<>();
         state = ElevatorMovingState.IDLE;
+        doorState = ElevatorDoorState.CLOSE;
         Random rand = new Random();
         currentElevatorFloor = rand.nextInt(6); //elevator goes up to the 6th floor
 
@@ -44,8 +47,9 @@ public class ElevatorSubsystem implements Runnable{
 
     public void setFloor(int destinationFloor) {
         this.destinationFloor = destinationFloor;
-        //pressedButtons.remove(floor);
     }
+
+
 
     public int getFloor() {
         return this.destinationFloor;
@@ -79,6 +83,9 @@ public class ElevatorSubsystem implements Runnable{
         return false;
     }
 
+    /**
+     * this method gets the information from the scheduler
+     */
     public void receiveSchedulerInfo() {
         this.destinationFloor = scheduler.getElevatorButton();
         this.floorButton = scheduler.getFloorNumber();
@@ -92,50 +99,62 @@ public class ElevatorSubsystem implements Runnable{
 
 
     /**
-     * starts the operation of the elevator
-     * @param e
-     */
-    public synchronized void notifyElevator(Elevator e){
-        e.turnOnLamps(this.destinationFloor, this.directionButton);
-        e.startMotor(this.destinationFloor, this.directionButton, this.currentElevatorFloor, this.floorButton);
-
-    }
-
-
-    /**
      * this method is the state machine responsible for elevator movement
      * @param e elevator to be notified
      */
-    public synchronized void startElevatorSM(Elevator e) throws InterruptedException {
+    public synchronized void startElevatorSM(Elevator e, int direction, int currentElevatorFloor, int floorNumber) throws InterruptedException {
         switch(state){
             case IDLE: //when elevator is idle and a request is made
-                if(this.elevatorInfo.contains(this.directionButton)) {
-                    if (this.directionButton == 0) {
+                if(this.elevatorInfo.contains(direction)) {
+                    if (direction == 0) {
                         state = ElevatorMovingState.DOWN;
                     }
-                    if (this.directionButton == 1) {
+                    if (direction == 1) {
                         state = ElevatorMovingState.UP;
                     }
-                    e.turnOnLamps(this.destinationFloor, this.directionButton); //notify elevator to turn on lamps
-                    e.startMotor(this.destinationFloor, this.directionButton, this.currentElevatorFloor, this.floorButton);//notify elevator to start motors
+                    e.turnOnLamps(this.destinationFloor, direction); //notify elevator to turn on lamps
+                    e.startMotor(direction, currentElevatorFloor, floorNumber);//notify elevator to start motors
                 }
             case UP: //when elevator is going up and arrives at its destination
                 if(e.checkIfArrived()==true){
-                    e.openDoors();
-                    Thread.sleep(2000);
-                    e.closeDoors();
+                    this.previousElevatorFloor = this.currentElevatorFloor;
+                    this.currentElevatorFloor = this.elevator.getCurrentFloor();
+                    scheduler.notifyScheduler(true); //notify scheduler that elevator has arrived
                     state = ElevatorMovingState.IDLE;
                 }
                 break;
             case DOWN: //when elevator is going down and arrives at its destination
                 if(e.checkIfArrived()==true){
-                    e.openDoors();
-                    Thread.sleep(2000);
-                    e.closeDoors();
+                    this.previousElevatorFloor = this.currentElevatorFloor;
+                    this.currentElevatorFloor = this.elevator.getCurrentFloor();
+                    scheduler.notifyScheduler(true); //notify scheduler that elevator has arrived
                     state = ElevatorMovingState.IDLE;
                 }
                 break;
         }
+    }
+
+
+    /**
+     * state machine for door operations
+     * @param elevator elevator whose door will be opened or closed
+     * @throws InterruptedException
+     */
+    public synchronized void doorsStateMachine(Elevator elevator) throws InterruptedException {
+        switch(doorState){
+            case CLOSE:
+                Thread.sleep(2000); //wait for elevator to be notified
+                if(scheduler.notifyAboutFloor(true) == true){
+                    doorState = ElevatorDoorState.OPEN;
+                    elevator.openDoors();
+                }
+            case OPEN:
+                Thread.sleep(2000); // wait a while before doors close
+                doorState = ElevatorDoorState.CLOSE;
+                elevator.closeDoors();
+        }
+
+        notifyAll();
     }
 
     @Override
@@ -146,13 +165,26 @@ public class ElevatorSubsystem implements Runnable{
         }
         System.out.println("\nElevator Data from Scheduler-------------------------------------------------------------");
         try {
-            this.startElevatorSM(elevator);
+            this.startElevatorSM(this.elevator, this.directionButton, this.currentElevatorFloor, this.floorButton); //brings elevator to the floor the passenger is located
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        //this.notifyElevator(elevator);  //turns the lamps of and moves the elevator according to the updates from the scheduler
-        scheduler.notifyScheduler(true);
-        scheduler.receiveElevatorData(this.currentElevatorFloor, this.directionButton); //scheduler recieves the elevators current floor and direction
+        scheduler.receiveElevatorData(this.previousElevatorFloor, this.directionButton); //scheduler receives the elevators current floor and direction
+        try {
+            this.doorsStateMachine(elevator); //starts door operation
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("\nElevator now heading to floor "+ this.destinationFloor+"-------------------------------------------------------------");
+
+        try {
+            this.startElevatorSM(this.elevator, this.directionButton, this.currentElevatorFloor, this.destinationFloor); //heads over to the destination floor
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+
     }
 }
 

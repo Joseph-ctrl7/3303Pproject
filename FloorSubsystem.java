@@ -36,6 +36,7 @@ public class FloorSubsystem implements Runnable {
     private String inputFile;
     private Map<String, Integer> inputInfo;
     private ArrayList<Integer> elevatorInfo;
+    private boolean floorSubsystemNotified = false;
 
 
     public FloorSubsystem(Scheduler scheduler, String inputFile){
@@ -142,19 +143,25 @@ public class FloorSubsystem implements Runnable {
 
     /**
      * notifies floor about the location of the elevator
-     * @param f
+     * @param f floor to be notified
      */
-    public void notifyFloor(Floor f){
+    public synchronized void notifyFloor(Floor f){
         f.turnOnFloorLamps(currentElevatorFloor, direction);
     }
 
 
+    /**
+     * receives information from the scheduler
+     */
     public void receiveSchedulerInfo() {
         this.currentElevatorFloor = scheduler.getCurrentFloor();
         this.direction = scheduler.getDirection();
 
         elevatorInfo.add(this.currentElevatorFloor);
         elevatorInfo.add(this.direction);
+
+        floorSubsystemNotified = true;
+
     }
 
 
@@ -170,11 +177,12 @@ public class FloorSubsystem implements Runnable {
 
         scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
 
-        if(scheduler.askForElevatorData() == true){
+        if(scheduler.askForElevatorData() == true){ //if elevator data in scheduler is available
             this.receiveSchedulerInfo();
         }
         System.out.println("\nFloor Data from Scheduler--------------------------------------------------------------------");
         this.notifyFloor(floor);
+        scheduler.notifyAboutFloor(true); //tell scheduler that floor was successfully notified
 
     }
 
