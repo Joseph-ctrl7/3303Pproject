@@ -1,0 +1,13 @@
+Set Up Instructions: 
+
+1) Extract project zip file in a specific folder
+2) Open project folder in Eclipse
+	File->Open Projects from File System...
+	Click Directory and navigate to the extracted zip location and select root folder.
+	Click Finish
+3) Wait for the Project to build
+4) Open FloorSubsytem.java tab and run the main method
+	 Run > FloorSubsystem.java as a Java Application
+
+Testing
+
