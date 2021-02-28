@@ -14,7 +14,9 @@ FloorSubsystem- This class manages sending and receiving of requests from the Sc
 Scheduler - This class is the bridge between the Elevator and the Floor systems. It receives request from the FloorSubsystem and also replies to requests from the Elevator when there is work to do.
 
 TestCases - This class is used to run tests on the whole system.
-
+ElevatorTest - Tests the Elevator class.
+SchedulerTest - Tests the scheduler class.
+FloorTest - Tests the Floor class.
 
 System Flow:
 -	Floor requests an elevator and sends it to the scheduler
