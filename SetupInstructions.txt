@@ -11,7 +11,7 @@ Set Up Instructions:
 
 Testing
 in order to run the test cases, in eclipse:
-Run > ElevatorTest.java
-Run > floorsubsystem.java
-Run > FloorTest.java
-Run > SchedulerTest.java
+	Run > ElevatorTest.java
+	Run > floorsubsystem.java
+	Run > FloorTest.java
+	Run > SchedulerTest.java
