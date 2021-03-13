@@ -9,10 +9,12 @@
  */
 
 
+import java.io.IOException;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class Scheduler implements Runnable {
 
@@ -25,10 +27,24 @@ public class Scheduler implements Runnable {
     private int elevatorButton;
     private int currentFloor;
     private int numberOfElevators;
+    private int numberOfFloors;
     private ElevatorSubsystem subsystem;
+    private ElevatorSubsystem s;
     private Elevator elevator;
     private SchedulerStates state;
     private boolean floorNotified = false;
+    public ArrayList numbers;
+    private Map<Integer, ElevatorSubsystem> elevators;
+
+    private Queue<DatagramPacket> queue;
+    private int portNumber;
+    private DatagramSocket receiveSocket;
+    private DatagramSocket socket;
+    private InetAddress local;
+    private DatagramPacket receivePacket;
+    private DatagramPacket ackPacket;
+
+    Thread sThread;
 
     private Map<String, Integer> inputInfo;
     private Map<String, Integer> elevatorData;
@@ -38,15 +54,76 @@ public class Scheduler implements Runnable {
     public enum SchedulerStates {LISTENING, RECEIVED, ELEVATORINFO, FLOORINFO}
 
 
-    public Scheduler(Elevator elevator) {
+    public Scheduler(int numberOfElevators, int numberOfFloors) {
+        this.numberOfElevators = numberOfElevators;
+        this.numberOfFloors = numberOfFloors;
+        elevators = new HashMap();
         inputInfo = new HashMap();
         elevatorData = new HashMap();
         this.elevator = elevator;
         state = SchedulerStates.LISTENING;
+        s = new ElevatorSubsystem(this);
+        sThread = new Thread(s);
 
+        numbers = new ArrayList();
+        for (int i=0; i<numberOfFloors; i++){
+            numbers.add(i);
+        }
+
+        for(int i = 1; i < numberOfElevators+1; i++){
+            subsystem = new ElevatorSubsystem(this);
+            subsystem.setCurrentFloor(this.getSpecificLocation());
+            elevators.put(i, subsystem);
+        }
 
     }
 
+    public synchronized void sendReceivePacket(){
+        byte data[] = new byte[100];
+        byte validationMessage[] = new byte[100];
+        validationMessage = "Message received".getBytes();
+        receivePacket = new DatagramPacket(data, data.length);
+        System.out.println("Scheduler: LISTENING");
+
+        try {
+            receiveSocket.receive(receivePacket);
+        } catch (IOException e) {
+            System.out.print("IO Exception: likely:");
+            System.out.println("Receive Socket Timed Out.\n" + e);
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public void getLocations(){
+            for(Map.Entry<Integer, ElevatorSubsystem> e : elevators.entrySet()){
+                System.out.println( e.getValue().getCurrentFloor());
+        }
+    }
+
+    public int getSpecificLocation(){
+        int i = 0;
+        Collections.shuffle(numbers);
+        return (int) numbers.get(i);
+    }
 
     public int getDirection(){
         return this.direction;
@@ -87,6 +164,8 @@ public class Scheduler implements Runnable {
     }
 
 
+
+
     /**
      * checks if elevator data is available
      * @return
@@ -101,6 +180,10 @@ public class Scheduler implements Runnable {
         }
         notifyAll();
         return true;
+    }
+
+    public void selectBestElevator(){
+
     }
 
 
@@ -196,6 +279,10 @@ public class Scheduler implements Runnable {
         return true;
     }
 
+    public SchedulerStates getState() {
+        return state;
+    }
+
     /**
      * returns true if scheduler contains the elevator data
      * @return
@@ -229,36 +316,82 @@ public class Scheduler implements Runnable {
      *
      *
      */
-    public synchronized void startSchedulerSM(){
+    public synchronized boolean startSchedulerSM(){
         switch (state){
             case LISTENING:// scheduler listens for info from both elevator and floor subsystems
                 if(this.dataReceived == true){
                     state = SchedulerStates.RECEIVED;
+                    this.dataReceived = false;
                 }
+                break;
             case RECEIVED:
                 if(this.floorInfoReceived == true){
                     state = SchedulerStates.FLOORINFO;
                     this.floorInfoReceived = false; //clear flag
                 }
+
                 if(this.elevatorInfoReceived == true){
                     state = SchedulerStates.ELEVATORINFO;
                     this.elevatorInfoReceived = false; //clear flag
                 }
+                break;
             case FLOORINFO:
-                checkData(); //checks to see if the scheduler has been notified by the ElevatorSubsystem(elevator subsystem thread will then start in order to receive scheduler info)
+                //if(this.askForInput() == true){  //updates elevator tasks if there is input in the scheduler
+                  //  s.receiveSchedulerInfo();
+                //}
                 state = SchedulerStates.LISTENING; //returns back to listening for info
+                break;
             case ELEVATORINFO:
+                checkData(); //checks to see if the scheduler has been notified by the ElevatorSubsystem(elevator subsystem thread will then start in order to receive scheduler info)
                 if(!elevatorData.isEmpty()){
                     state = SchedulerStates.LISTENING;
                 }
-
+                break;
         }
+        return true;
     }
+
+/*
+    private Elevator getBestElevator(SchedulerRequest request) {
+        Elevator tempElevator = null;
+        for (int i = 1; i <= numberOfElevators; i++) {
+            Elevator elevator = elevatorStatus.get(i);
+            if (elevator.getNumRequests() == 0) {
+                return elevator;
+            } else {
+                if (elevator.getRequestDirection().equals(request.getRequestDirection())) {
+                    if(tempElevator == null) {
+                        tempElevator = elevator;
+                    }
+                    if (elevator.getRequestDirection().equals(Direction.DOWN)
+                            && elevator.getCurrentFloor() > request.getSourceFloor()) {
+                        if(elevator.getNumRequests() < tempElevator.getNumRequests()) {
+                            tempElevator = elevator;
+                        }
+                    } else if (elevator.getRequestDirection().equals(Direction.UP)
+                            && elevator.getCurrentFloor() < request.getDestFloor()) {
+                        if(elevator.getNumRequests() < tempElevator.getNumRequests()) {
+                            tempElevator = elevator;
+                        }
+                    }
+                }
+            }
+        }
+        return tempElevator;
+    }*/
 
 
     @Override
     public void run() {
-        this.startSchedulerSM();
+        sendReceivePacket();
+        //this.startSchedulerSM();
+        //sThread.start();
+    }
+
+
+    public static void main(String[] args) {
+        Scheduler s = new Scheduler(2, 6);
+        s.getLocations();
     }
 }
 
