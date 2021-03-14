@@ -58,6 +58,10 @@ public class FloorSubsystem implements Runnable {
     }
 
 
+    /**
+     * this method is responsible for sending and receiving data packets from the scheduler
+     * @throws IOException
+     */
     public synchronized void sendAndReceiveInfoInPacket() throws IOException {
         byte[] dataStringArr = dataString.getBytes();
 
@@ -66,7 +70,7 @@ public class FloorSubsystem implements Runnable {
         //System.out.println(Arrays.toString(dataArray));
 
 
-        packetToSend = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);
+        packetToSend = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);//create a new packet to send data
 
         System.out.println("\nFloorSubsystem: Sending packet:");
         System.out.println("To Scheduler: " +  packetToSend.getAddress());
@@ -78,18 +82,14 @@ public class FloorSubsystem implements Runnable {
         System.out.println("Bytes - " + Arrays.toString(packetToSend.getData()));
 
 
-        sendReceiveSocket.send(packetToSend);
-       // sendReceiveSocket.receive(replyPacket);
-
+        sendReceiveSocket.send(packetToSend);//send packet
         System.out.println(new String(packetToSend.getData(), 0, packetToSend.getLength()));
 
 
         //receive data from scheduler
         byte elevatorData[] = new byte[100];
-        receivedPacket = new DatagramPacket(elevatorData, elevatorData.length);
-        //System.out.println("\nScheduler: LISTENING");
+        receivedPacket = new DatagramPacket(elevatorData, elevatorData.length);// create a new packet to receive data from scheduler
 
-        //receive datagramPacket from FloorSubsystem
         try {
             sendReceiveSocket.receive(receivedPacket);
         } catch (IOException e) {
@@ -108,65 +108,17 @@ public class FloorSubsystem implements Runnable {
         // Form a String from the byte array.
         String received = new String(elevatorData,0,len);
         System.out.println(received + "\n");
-        String arr[] = received.split(" ");
-        System.out.println(Arrays.toString(arr));
-        this.receiveSchedulerInfo(arr[0], arr[1]);
 
+        String arr[] = received.split(" "); //split the string received from packet and store it in an array
+
+        this.receiveSchedulerInfo(arr[0], arr[1]); //process the data in the array
 
         sendReceiveSocket.close();
 
     }
 
-    public void receivePacket() {
-        int len = 0;
-        byte data[] = new byte[100];
-        receivedPacket = new DatagramPacket(data, data.length);
 
-        try {
-            // Block until a datagram is received via sendReceiveSocket.
-            sendReceiveSocket.receive(receivedPacket);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-
-        // Process the received datagram.
-        //System.out.println("Client: Packet received:");
-        //System.out.println("From host: " + replyPacket.getAddress());
-        //System.out.println("Host port: " + replyPacket.getPort());
-        //len = replyPacket.getLength();
-        //System.out.println("Length: " + len);
-        //System.out.print("Containing: ");
-
-        // Form a String from the byte array.
-        String received = new String(data, 0, len);
-        System.out.println(received);
-
-        sendReceiveSocket.close();
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    //getters and setters for the fields in the floorSubsystem class---------------------------------------------------------------------
     public int getCurrentFloor() {
         return this.currentElevatorFloor;
     }
@@ -194,7 +146,7 @@ public class FloorSubsystem implements Runnable {
     public String getDataString(){
         return dataString;
     }
-
+//-------------------------------------------------------------------------------------------------------------------------------------
 
     /**
      * checks if data about the elevator received from scheduler is empty
@@ -320,12 +272,6 @@ public class FloorSubsystem implements Runnable {
             e.printStackTrace();
         }
 
-        //scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
-
-        //if(scheduler.askForElevatorData() == true){ //if elevator data in scheduler is available
-          //  this.receiveSchedulerInfo();
-        //}
-       // System.out.println("\nFloor Data from Scheduler--------------------------------------------------------------------");
         this.notifyFloor(floor);
         scheduler.notifyAboutFloor(true); //tell scheduler that floor was successfully notified
 

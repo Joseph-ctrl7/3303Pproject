@@ -27,7 +27,7 @@ public class ElevatorSubsystem implements Runnable{
     private Scheduler scheduler;
     private Elevator elevator;
     private ArrayList<Integer> elevatorInfo;
-    private ElevatorMovingState state;
+    public ElevatorMovingState state;
     private ElevatorDoorState doorState;
     private boolean operateDoors = false;
     private int port;
@@ -48,19 +48,23 @@ public class ElevatorSubsystem implements Runnable{
         doorState = ElevatorDoorState.CLOSE;
         Random rand = new Random();
         currentElevatorFloor = rand.nextInt(6); //elevator goes up to the 6th floor
-        receiveSocket = new DatagramSocket(port);
+        receiveSocket = new DatagramSocket(scheduler.elevatorPort);
         sendSocket = new DatagramSocket();
 
     }
 
+
+    /**
+     * this method sends and receives data packets from the scheduler
+     * @throws UnknownHostException
+     * @throws InterruptedException
+     */
     public synchronized void receiveAndSend() throws UnknownHostException, InterruptedException {
         byte data[] = new byte[100];
         receivePacket = new DatagramPacket(data, data.length);
-        //System.out.println("Server: Waiting for Packet.\n");
 
         // Block until a datagram packet is received from receiveSocket.
         try {
-           // System.out.println("Waiting..."); // so we know we're waiting
             receiveSocket.receive(receivePacket);
         } catch (IOException e) {
             System.out.print("IO Exception: likely:");
@@ -80,14 +84,14 @@ public class ElevatorSubsystem implements Runnable{
         // Form a String from the byte array.
         String received = new String(data,0,len);
         System.out.println(received + "\n");
-        String arr[] = received.split(" ");
+        String arr[] = received.split(" ");// split the received packet into a String array
         System.out.println(Arrays.toString(arr));
-        this.receiveSchedulerInfo(arr[3], arr[1], arr[2]);
+        this.receiveSchedulerInfo(arr[3], arr[1], arr[2]);//process the received data from the packet
 
-        startElevatorSM(elevator, directionButton, currentElevatorFloor, floorButton);
+        startElevatorSM(elevator, directionButton, currentElevatorFloor, floorButton); //start the elevator statemachine
 
 
-        elevatorData = elevatorData+previousElevatorFloor+" "+directionButton;
+        elevatorData = elevatorData+previousElevatorFloor+" "+directionButton; //store the data gotten from the elevator
         byte elevatorStringArr[] = elevatorData.getBytes();
         byte[] dataArray = new byte[25];
         System.arraycopy(elevatorStringArr, 0, dataArray, 0, elevatorStringArr.length);
@@ -110,21 +114,10 @@ public class ElevatorSubsystem implements Runnable{
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    //getters and setters for the fields in the elevatorSubsystem class-----------------------------------------------------------------------
+    public int getPort(){
+        return port;
+    }
 
 
     public void setFloor(int destinationFloor) {
@@ -165,7 +158,12 @@ public class ElevatorSubsystem implements Runnable{
         this.currentElevatorFloor = currentFloor;
     }
 
+    //-------------------------------------------------------------------------------------------------------------------
 
+    /**
+     * checks if the elevator info is available
+     * @return true if it is
+     */
     public boolean checkIfEmpty() {
         if(elevatorInfo.isEmpty()) {
             return true;
@@ -263,16 +261,6 @@ public class ElevatorSubsystem implements Runnable{
         } catch (UnknownHostException | InterruptedException e) {
             e.printStackTrace();
         }
-        //if(scheduler.askForInput() == true){  //updates elevator tasks if there is input in the scheduler
-          //  this.receiveSchedulerInfo();
-        //}
-        //System.out.println("\nElevator Data from Scheduler-------------------------------------------------------------");
-        /*try {
-            this.startElevatorSM(this.elevator, this.directionButton, this.currentElevatorFloor, this.floorButton); //brings elevator to the floor the passenger is located
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }*/
-        //scheduler.receiveElevatorData(this.previousElevatorFloor, this.directionButton); //scheduler receives the elevators current floor and direction
         try {
             this.doorsStateMachine(elevator); //starts door operation
         } catch (InterruptedException e) {
