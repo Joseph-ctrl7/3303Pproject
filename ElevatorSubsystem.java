@@ -8,7 +8,10 @@
  *
  */
 
+import java.io.IOException;
+import java.net.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 
@@ -20,27 +23,106 @@ public class ElevatorSubsystem implements Runnable{
     private int destinationFloor;
     private int directionButton;
     private int floorButton;
+    private String elevatorData;
     private Scheduler scheduler;
     private Elevator elevator;
     private ArrayList<Integer> elevatorInfo;
     private ElevatorMovingState state;
     private ElevatorDoorState doorState;
     private boolean operateDoors = false;
+    private int port;
+    DatagramPacket sendPacket, receivePacket;
+    DatagramSocket receiveSocket, sendSocket;
 
 
     public enum ElevatorMovingState {UP, DOWN, IDLE};
     public enum ElevatorDoorState {OPEN, CLOSE};
 
-    public ElevatorSubsystem(Scheduler scheduler){
+    public ElevatorSubsystem(int port, Scheduler scheduler) throws SocketException {
         this.scheduler = scheduler;
+        elevatorData = "";
+        this.port = port;
         elevator = new Elevator();
         elevatorInfo = new ArrayList<>();
         state = ElevatorMovingState.IDLE;
         doorState = ElevatorDoorState.CLOSE;
         Random rand = new Random();
         currentElevatorFloor = rand.nextInt(6); //elevator goes up to the 6th floor
+        receiveSocket = new DatagramSocket(port);
+        sendSocket = new DatagramSocket();
 
     }
+
+    public synchronized void receiveAndSend() throws UnknownHostException, InterruptedException {
+        byte data[] = new byte[100];
+        receivePacket = new DatagramPacket(data, data.length);
+        //System.out.println("Server: Waiting for Packet.\n");
+
+        // Block until a datagram packet is received from receiveSocket.
+        try {
+           // System.out.println("Waiting..."); // so we know we're waiting
+            receiveSocket.receive(receivePacket);
+        } catch (IOException e) {
+            System.out.print("IO Exception: likely:");
+            System.out.println("Receive Socket Timed Out.\n" + e);
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        // Process the received datagram.
+        System.out.println("ElevatorSubsystem: Packet received:");
+        System.out.println("From host: " + receivePacket.getAddress());
+        System.out.println("Host port: " + receivePacket.getPort());
+        int len = receivePacket.getLength();
+        System.out.println("Length: " + len);
+        System.out.print("Containing: " );
+
+        // Form a String from the byte array.
+        String received = new String(data,0,len);
+        System.out.println(received + "\n");
+        String arr[] = received.split(" ");
+        System.out.println(Arrays.toString(arr));
+        this.receiveSchedulerInfo(arr[3], arr[1], arr[2]);
+
+        startElevatorSM(elevator, directionButton, currentElevatorFloor, floorButton);
+
+
+        elevatorData = elevatorData+previousElevatorFloor+" "+directionButton;
+        byte elevatorStringArr[] = elevatorData.getBytes();
+        byte[] dataArray = new byte[25];
+        System.arraycopy(elevatorStringArr, 0, dataArray, 0, elevatorStringArr.length);
+        //send packet back to scheduler
+        sendPacket = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);
+        System.out.println("Sending data from elevator:");
+        System.out.println("To: " + sendPacket.getAddress());
+        System.out.println("host port: " + sendPacket.getPort());
+        System.out.print("Data: ");
+        System.out.println(new String(sendPacket.getData(),0,sendPacket.getLength()));
+        try {
+            sendSocket.send(sendPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        System.out.println("sent\n");
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -75,6 +157,14 @@ public class ElevatorSubsystem implements Runnable{
         return this.currentElevatorFloor;
     }
 
+    public int getElevatorInfo(int index) {
+        return elevatorInfo.get(index);
+    }
+
+    public void setCurrentFloor(int currentFloor) {
+        this.currentElevatorFloor = currentFloor;
+    }
+
 
     public boolean checkIfEmpty() {
         if(elevatorInfo.isEmpty()) {
@@ -86,10 +176,14 @@ public class ElevatorSubsystem implements Runnable{
     /**
      * this method gets the information from the scheduler
      */
-    public void receiveSchedulerInfo() {
-        this.destinationFloor = scheduler.getElevatorButton();
-        this.floorButton = scheduler.getFloorNumber();
-        this.directionButton = scheduler.getDirection();
+    public void receiveSchedulerInfo(String elevatorButton, String floorButton, String direction) {
+        this.destinationFloor = 5;//Integer.parseInt(elevatorButton);
+        this.floorButton = Integer.parseInt(floorButton);
+        if(direction.equals("Up")){
+            this.directionButton = 1;
+        }else{
+            this.directionButton = 0;
+        }
 
         elevatorInfo.add(this.floorButton);
         elevatorInfo.add(this.directionButton);
@@ -159,17 +253,26 @@ public class ElevatorSubsystem implements Runnable{
 
     @Override
     public void run() {
-        if(scheduler.askForInput() == true){  //updates elevator tasks if there is input in the scheduler
-            this.receiveSchedulerInfo();
-
-        }
-        System.out.println("\nElevator Data from Scheduler-------------------------------------------------------------");
         try {
-            this.startElevatorSM(this.elevator, this.directionButton, this.currentElevatorFloor, this.floorButton); //brings elevator to the floor the passenger is located
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        scheduler.receiveElevatorData(this.previousElevatorFloor, this.directionButton); //scheduler receives the elevators current floor and direction
+        try {
+            this.receiveAndSend();
+        } catch (UnknownHostException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        //if(scheduler.askForInput() == true){  //updates elevator tasks if there is input in the scheduler
+          //  this.receiveSchedulerInfo();
+        //}
+        //System.out.println("\nElevator Data from Scheduler-------------------------------------------------------------");
+        /*try {
+            this.startElevatorSM(this.elevator, this.directionButton, this.currentElevatorFloor, this.floorButton); //brings elevator to the floor the passenger is located
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }*/
+        //scheduler.receiveElevatorData(this.previousElevatorFloor, this.directionButton); //scheduler receives the elevators current floor and direction
         try {
             this.doorsStateMachine(elevator); //starts door operation
         } catch (InterruptedException e) {
@@ -185,6 +288,12 @@ public class ElevatorSubsystem implements Runnable{
         }
 
 
+    }
+
+    public static void main(String[] args) throws SocketException {
+        //ElevatorSubsystem e = new ElevatorSubsystem(30);
+        //Thread elevatorSystem = new Thread(e);
+        //elevatorSystem.start();
     }
 }
 

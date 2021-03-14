@@ -10,15 +10,13 @@
 
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+import java.net.*;
 import java.sql.Timestamp;
 import java.util.*;
 
 public class Scheduler implements Runnable {
 
-    private Timestamp time;
+    private String time;
     private boolean dataReceived = false; // if any piece of data either from elevator or floor subsystem is received
     private boolean elevatorInfoReceived = false; //info from ElevatorSubsystem
     private boolean floorInfoReceived = false; //info from FloorSubsystem
@@ -38,10 +36,10 @@ public class Scheduler implements Runnable {
 
     private Queue<DatagramPacket> queue;
     private int portNumber;
-    private DatagramSocket receiveSocket;
+    private DatagramSocket sendSocket, receiveSocket;
     private DatagramSocket socket;
     private InetAddress local;
-    private DatagramPacket receivePacket;
+    private DatagramPacket receivePacket, sendPacket;
     private DatagramPacket ackPacket;
 
     Thread sThread;
@@ -54,7 +52,7 @@ public class Scheduler implements Runnable {
     public enum SchedulerStates {LISTENING, RECEIVED, ELEVATORINFO, FLOORINFO}
 
 
-    public Scheduler(int numberOfElevators, int numberOfFloors) {
+    public Scheduler(int numberOfElevators, int numberOfFloors) throws SocketException {
         this.numberOfElevators = numberOfElevators;
         this.numberOfFloors = numberOfFloors;
         elevators = new HashMap();
@@ -62,7 +60,9 @@ public class Scheduler implements Runnable {
         elevatorData = new HashMap();
         this.elevator = elevator;
         state = SchedulerStates.LISTENING;
-        s = new ElevatorSubsystem(this);
+        //s = new ElevatorSubsystem();
+        receiveSocket = new DatagramSocket(22);
+        sendSocket = new DatagramSocket();
         sThread = new Thread(s);
 
         numbers = new ArrayList();
@@ -70,30 +70,154 @@ public class Scheduler implements Runnable {
             numbers.add(i);
         }
 
-        for(int i = 1; i < numberOfElevators+1; i++){
-            subsystem = new ElevatorSubsystem(this);
-            subsystem.setCurrentFloor(this.getSpecificLocation());
-            elevators.put(i, subsystem);
-        }
+        //for(int i = 1; i < numberOfElevators+1; i++){
+          //  subsystem = new ElevatorSubsystem(27+i,this);
+           // subsystem.setCurrentFloor(this.getSpecificLocation());
+            //elevators.put(i, subsystem);
+        //}
 
     }
 
-    public synchronized void sendReceivePacket(){
+    public synchronized void sendReceivePacket() throws SocketException {
         byte data[] = new byte[100];
         byte validationMessage[] = new byte[100];
         validationMessage = "Message received".getBytes();
         receivePacket = new DatagramPacket(data, data.length);
-        System.out.println("Scheduler: LISTENING");
+        //System.out.println("\nScheduler: LISTENING");
 
+
+
+        //receive datagramPacket from FloorSubsystem
         try {
             receiveSocket.receive(receivePacket);
         } catch (IOException e) {
-            System.out.print("IO Exception: likely:");
+            System.out.print("\nIO Exception: likely:");
             System.out.println("Receive Socket Timed Out.\n" + e);
             e.printStackTrace();
             System.exit(1);
         }
 
+        System.out.println("\nScheduler: Packet received from floorSubsystem:");
+        System.out.println("From host: " + receivePacket.getAddress());
+        System.out.println("Host port: " + receivePacket.getPort());
+        int len = receivePacket.getLength();
+        System.out.println("Length: " + len);
+        System.out.print("Containing: " );
+        // Form a String from the byte array.
+        String received = new String(data,0,len);
+        System.out.println(received + "\n");
+        String arr[] = received.split(" ");
+        System.out.println(Arrays.toString(arr));
+        this.receiveInfo(arr[0], arr[1], arr[2], arr[3]);
+
+        startSchedulerSM();
+        this.selectBestElevator();
+
+
+
+
+        //send received packet to elevatorSubsystem
+        try {
+            sendPacket = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), 30);
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        System.out.println("\nScheduler: Sending packet:");
+        System.out.println("To host: " + sendPacket.getAddress());
+        System.out.println("Destination host port: " + sendPacket.getPort());
+        int length = sendPacket.getLength();
+        System.out.println("Length: " + length);
+        System.out.print("Containing: ");
+        System.out.println(new String(sendPacket.getData(),0,length)); // or could print "s"
+
+        // Send the datagram packet to the server via the send/receive socket.
+        try {
+            sendSocket.send(sendPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        System.out.println("Scheduler: Packet sent.\n");
+        dataReceived = false;
+        floorInfoReceived = false;
+
+
+
+
+        //receive from elevatorSubsystem
+        byte elevatorData[] = new byte[100];
+        receivePacket = new DatagramPacket(elevatorData, elevatorData.length);
+        //System.out.println("\nScheduler: LISTENING");
+        try {
+            receiveSocket.receive(receivePacket);
+        } catch (IOException e) {
+            System.out.print("\nIO Exception: likely:");
+            System.out.println("Receive Socket Timed Out.\n" + e);
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        System.out.println("\nScheduler: Packet received from elevatorSubsystem:");
+        System.out.println("From host: " + receivePacket.getAddress());
+        System.out.println("Host port: " + receivePacket.getPort());
+        len = receivePacket.getLength();
+        System.out.println("Length: " + len);
+        System.out.print("Containing: " );
+        // Form a String from the byte array.
+        received = new String(elevatorData,0,len);
+        System.out.println(received + "\n");
+        arr = received.split(" ");
+        System.out.println(Arrays.toString(arr));
+
+        String temp[] = new String[2];
+        System.arraycopy(arr, 0, temp, 0, temp.length);
+        System.out.println("temp: "+Arrays.toString(temp));
+
+        this.receiveElevatorData(temp[0], temp[1]);
+        startSchedulerSM();
+
+
+
+
+        //send to floorSubsystem
+        sendPacket = new DatagramPacket(elevatorData, receivePacket.getLength(), receivePacket.getAddress(), 21);
+
+        System.out.println("\nScheduler: Sending packet:");
+        System.out.println("To host: " + sendPacket.getAddress());
+        System.out.println("Destination host port: " + sendPacket.getPort());
+        length = sendPacket.getLength();
+        System.out.println("Length: " + length);
+        System.out.print("Containing: ");
+        System.out.println(new String(sendPacket.getData(),0,length)); // or could print "s"
+
+        // Send the datagram packet to the server via the send/receive socket.
+        try {
+            sendSocket.send(sendPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        System.out.println("Scheduler: Packet sent.\n");
+        dataReceived = false;
+        elevatorInfoReceived = false;
+
+
+
+
+
+        sendSocket.close();
+        receiveSocket.close();
+
+    }
+
+    public void selectBestElevator() throws SocketException {
+        ElevatorSubsystem e = new ElevatorSubsystem(30, this);
+        Thread elevatorSystem = new Thread(e);
+        elevatorSystem.start();
     }
 
 
@@ -182,24 +306,25 @@ public class Scheduler implements Runnable {
         return true;
     }
 
-    public void selectBestElevator(){
-
-    }
 
 
 
     /**
      * This method receives the input from the Floorsubsystem and sends it to the ElevatorSubsystem
      */
-    public synchronized void receiveInfo(Timestamp time, int floorNumber, int direction, int elevatorButton) {
+    public synchronized void receiveInfo(String time, String floorNumber, String direction, String elevatorButton) {
         this.time = time;
-        this.floorNumber = floorNumber;
-        this.direction = direction;
-        this.elevatorButton = elevatorButton;
+        this.floorNumber = Integer.parseInt(floorNumber);
+        this.elevatorButton = 5; //Integer.parseInt(elevatorButton, 10);
+        if(direction.equals("Up")){
+            this.direction = 1;
+        }else{
+            this.direction = 0;
+        }
 
-        inputInfo.put("floorNumber", floorNumber);
-        inputInfo.put("direction", direction);
-        inputInfo.put("elevatorButton", elevatorButton);
+        inputInfo.put("floorNumber", this.floorNumber);
+        inputInfo.put("direction",this.direction);
+        inputInfo.put("elevatorButton", this.elevatorButton);
         dataReceived = true;
         floorInfoReceived = true;
 
@@ -237,12 +362,12 @@ public class Scheduler implements Runnable {
      * @param currentFloor
      * @param direction
      */
-    public synchronized void receiveElevatorData(int currentFloor, int direction) {
-        this.currentFloor = currentFloor;
-        this.direction = direction;
+    public synchronized void receiveElevatorData(String currentFloor, String direction) {
+        this.currentFloor = Integer.parseInt(currentFloor);
+        this.direction = 1;//Integer.parseInt(direction);
 
-        elevatorData.put("currentFloor", currentFloor);
-        elevatorData.put("direction", direction);
+        elevatorData.put("currentFloor", this.currentFloor);
+        elevatorData.put("direction", this.direction);
         dataReceived = true;
         elevatorInfoReceived = true;
 
@@ -351,46 +476,29 @@ public class Scheduler implements Runnable {
         return true;
     }
 
-/*
-    private Elevator getBestElevator(SchedulerRequest request) {
-        Elevator tempElevator = null;
-        for (int i = 1; i <= numberOfElevators; i++) {
-            Elevator elevator = elevatorStatus.get(i);
-            if (elevator.getNumRequests() == 0) {
-                return elevator;
-            } else {
-                if (elevator.getRequestDirection().equals(request.getRequestDirection())) {
-                    if(tempElevator == null) {
-                        tempElevator = elevator;
-                    }
-                    if (elevator.getRequestDirection().equals(Direction.DOWN)
-                            && elevator.getCurrentFloor() > request.getSourceFloor()) {
-                        if(elevator.getNumRequests() < tempElevator.getNumRequests()) {
-                            tempElevator = elevator;
-                        }
-                    } else if (elevator.getRequestDirection().equals(Direction.UP)
-                            && elevator.getCurrentFloor() < request.getDestFloor()) {
-                        if(elevator.getNumRequests() < tempElevator.getNumRequests()) {
-                            tempElevator = elevator;
-                        }
-                    }
-                }
-            }
-        }
-        return tempElevator;
-    }*/
-
 
     @Override
     public void run() {
-        sendReceivePacket();
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        try {
+            sendReceivePacket();
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
         //this.startSchedulerSM();
         //sThread.start();
     }
 
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SocketException {
         Scheduler s = new Scheduler(2, 6);
+        //String j = "hello world";
+        //String arr[] = j.split(" ");
+        //System.out.println(Arrays.toString(arr));
         s.getLocations();
     }
 }

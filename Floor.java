@@ -14,7 +14,7 @@ public class Floor {
 
     public int floorNum;
     public int carButton;
-    public boolean floorNotified = false;
+    public boolean floorNotified;
     private boolean upLamp;
 
     private boolean downLamp;
@@ -24,6 +24,10 @@ public class Floor {
 
     @SuppressWarnings("unused")
     private int destFloor;
+
+    public Floor() {
+        floorNotified = false;
+    }
 
     public void setDestination(int destFloor) {
         this.destFloor = destFloor;

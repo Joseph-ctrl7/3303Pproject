@@ -2,16 +2,12 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.*;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 import javax.security.auth.login.AccountException;
 
@@ -37,6 +33,13 @@ public class FloorSubsystem implements Runnable {
     private Map<String, Integer> inputInfo;
     private ArrayList<Integer> elevatorInfo;
     private boolean floorSubsystemNotified = false;
+    private boolean dataValidated = false;
+    private String dataString;
+
+    DatagramSocket sendReceiveSocket;
+    DatagramPacket packetToSend;
+    DatagramPacket receivedPacket;
+    DatagramPacket replyPacket;
 
 
     public FloorSubsystem(Scheduler scheduler, String inputFile){
@@ -45,11 +48,131 @@ public class FloorSubsystem implements Runnable {
         inputInfo = new HashMap<String, Integer>();
         elevatorInfo = new ArrayList<>();
         floor = new Floor();
+
+        try {
+            sendReceiveSocket = new DatagramSocket(21);
+        } catch (SocketException se) {   // Can't create the socket.
+            se.printStackTrace();
+            System.exit(1);
+        }
     }
+
+
+    public synchronized void sendAndReceiveInfoInPacket() throws IOException {
+        byte[] dataStringArr = dataString.getBytes();
+
+        byte[] dataArray = new byte[25];
+        System.arraycopy(dataStringArr, 0, dataArray, 0, dataStringArr.length);
+        //System.out.println(Arrays.toString(dataArray));
+
+
+        packetToSend = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);
+
+        System.out.println("\nFloorSubsystem: Sending packet:");
+        System.out.println("To Scheduler: " +  packetToSend.getAddress());
+        System.out.println("Destination host port: " +  packetToSend.getPort());
+        int len =  packetToSend.getLength();
+        System.out.println("Length: " + len);
+        System.out.print("Containing: String - ");
+        System.out.println(new String(packetToSend.getData(),0,len)); // or could print "s"
+        System.out.println("Bytes - " + Arrays.toString(packetToSend.getData()));
+
+
+        sendReceiveSocket.send(packetToSend);
+       // sendReceiveSocket.receive(replyPacket);
+
+        System.out.println(new String(packetToSend.getData(), 0, packetToSend.getLength()));
+
+
+        //receive data from scheduler
+        byte elevatorData[] = new byte[100];
+        receivedPacket = new DatagramPacket(elevatorData, elevatorData.length);
+        //System.out.println("\nScheduler: LISTENING");
+
+        //receive datagramPacket from FloorSubsystem
+        try {
+            sendReceiveSocket.receive(receivedPacket);
+        } catch (IOException e) {
+            System.out.print("\nIO Exception: likely:");
+            System.out.println("Receive Socket Timed Out.\n" + e);
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        System.out.println("\nFloorSubsystem: Packet received:");
+        System.out.println("From host: " + receivedPacket.getAddress());
+        System.out.println("Host port: " + receivedPacket.getPort());
+        len = receivedPacket.getLength();
+        System.out.println("Length: " + len);
+        System.out.print("Containing: " );
+        // Form a String from the byte array.
+        String received = new String(elevatorData,0,len);
+        System.out.println(received + "\n");
+        String arr[] = received.split(" ");
+        System.out.println(Arrays.toString(arr));
+        this.receiveSchedulerInfo(arr[0], arr[1]);
+
+
+        sendReceiveSocket.close();
+
+    }
+
+    public void receivePacket() {
+        int len = 0;
+        byte data[] = new byte[100];
+        receivedPacket = new DatagramPacket(data, data.length);
+
+        try {
+            // Block until a datagram is received via sendReceiveSocket.
+            sendReceiveSocket.receive(receivedPacket);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        // Process the received datagram.
+        //System.out.println("Client: Packet received:");
+        //System.out.println("From host: " + replyPacket.getAddress());
+        //System.out.println("Host port: " + replyPacket.getPort());
+        //len = replyPacket.getLength();
+        //System.out.println("Length: " + len);
+        //System.out.print("Containing: ");
+
+        // Form a String from the byte array.
+        String received = new String(data, 0, len);
+        System.out.println(received);
+
+        sendReceiveSocket.close();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     public int getCurrentFloor() {
         return this.currentElevatorFloor;
+    }
+
+    public void setCurrentFloor(int floor) {
+        this.currentElevatorFloor = floor;
     }
 
     public Timestamp getTime() {
@@ -68,6 +191,15 @@ public class FloorSubsystem implements Runnable {
         return this.floorNumber;
     }
 
+    public String getDataString(){
+        return dataString;
+    }
+
+
+    /**
+     * checks if data about the elevator received from scheduler is empty
+     * @return true if hashmap is empty
+     */
     public boolean checkIfEmpty() {
         if(elevatorInfo.isEmpty()) {
             return true;
@@ -96,6 +228,11 @@ public class FloorSubsystem implements Runnable {
         notifyAll();
     }
 
+
+    /**
+     * checks if input text files where stored successfully
+     * @return false if its stored successfully
+     */
     public boolean isEmpty() {
         if (inputInfo.isEmpty()) {
             return true;
@@ -113,6 +250,7 @@ public class FloorSubsystem implements Runnable {
      * @throws ParseException
      */
     private void convertTime(String dateString) throws ParseException {
+        dataString = dateString;
         SimpleDateFormat format = new SimpleDateFormat("hh:mm:ss");
         Date date1 = format.parse(dateString);
         Timestamp ts = new Timestamp(date1.getTime());
@@ -128,6 +266,8 @@ public class FloorSubsystem implements Runnable {
      * @param elevatorButton
      */
     public void convertInfoToInt (String floorNumber, String direction, String elevatorButton){
+        dataString = dataString +" "+floorNumber+" "+direction+" "+ elevatorButton;
+
         this.floorNumber = Integer.parseInt(floorNumber);
         this.elevatorButton = Integer.parseInt(elevatorButton);
         if(direction.equals("Up")){
@@ -153,9 +293,9 @@ public class FloorSubsystem implements Runnable {
     /**
      * receives information from the scheduler
      */
-    public void receiveSchedulerInfo() {
-        this.currentElevatorFloor = scheduler.getCurrentFloor();
-        this.direction = scheduler.getDirection();
+    public void receiveSchedulerInfo(String currentElevatorFloor, String direction) {
+        this.currentElevatorFloor = Integer.parseInt(currentElevatorFloor);
+        this.direction = 1;//scheduler.getDirection();
 
         elevatorInfo.add(this.currentElevatorFloor);
         elevatorInfo.add(this.direction);
@@ -174,13 +314,18 @@ public class FloorSubsystem implements Runnable {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
-        scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
-
-        if(scheduler.askForElevatorData() == true){ //if elevator data in scheduler is available
-            this.receiveSchedulerInfo();
+        try {
+            sendAndReceiveInfoInPacket();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        System.out.println("\nFloor Data from Scheduler--------------------------------------------------------------------");
+
+        //scheduler.receiveInfo(time, floorNumber, direction, elevatorButton);
+
+        //if(scheduler.askForElevatorData() == true){ //if elevator data in scheduler is available
+          //  this.receiveSchedulerInfo();
+        //}
+       // System.out.println("\nFloor Data from Scheduler--------------------------------------------------------------------");
         this.notifyFloor(floor);
         scheduler.notifyAboutFloor(true); //tell scheduler that floor was successfully notified
 
@@ -188,17 +333,19 @@ public class FloorSubsystem implements Runnable {
 
     public static void main(String[] args) throws IOException, ParseException {
         Elevator elevator = new Elevator();
-        Scheduler scheduler = new Scheduler(elevator);
+        Scheduler scheduler = new Scheduler(2, 6);
         FloorSubsystem f = new FloorSubsystem(scheduler, "elevatorInputs.txt");
-        ElevatorSubsystem e = new ElevatorSubsystem(scheduler);
+        //ElevatorSubsystem e = new ElevatorSubsystem();
         //f.readInputFile();
+        //System.out.println(f.getDataString());
+        //f.sendInfoInPacket();
 
         Thread floorSubsystem = new Thread(f);
         Thread schedulerThread = new Thread(scheduler);
-        Thread elevatorSystem = new Thread(e);
+        //Thread elevatorSystem = new Thread(e);
         floorSubsystem.start();
         schedulerThread.start();
-        elevatorSystem.start();
+        //elevatorSystem.start();
         //System.out.println(f.readInputFile("elevatorInputs.txt"));
     }
 }
