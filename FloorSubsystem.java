@@ -32,6 +32,7 @@ public class FloorSubsystem implements Runnable {
     private String inputFile;
     private Map<String, Integer> inputInfo;
     private ArrayList<Integer> elevatorInfo;
+    private ArrayList<FloorData> floorData;
     private boolean floorSubsystemNotified = false;
     private boolean dataValidated = false;
     private String dataString;
@@ -47,6 +48,7 @@ public class FloorSubsystem implements Runnable {
         this.inputFile = inputFile;
         inputInfo = new HashMap<String, Integer>();
         elevatorInfo = new ArrayList<>();
+        floorData = new ArrayList<>();
         floor = new Floor();
 
         try {
@@ -63,27 +65,30 @@ public class FloorSubsystem implements Runnable {
      * @throws IOException
      */
     public synchronized void sendAndReceiveInfoInPacket() throws IOException {
-        byte[] dataStringArr = dataString.getBytes();
+        for(FloorData f: floorData) {
+            dataString = dataString +" "+f.getFloorNumber()+" "+f.getDirection()+" "+ f.getElevatorButton();
+            byte[] dataStringArr = dataString.getBytes();
 
-        byte[] dataArray = new byte[25];
-        System.arraycopy(dataStringArr, 0, dataArray, 0, dataStringArr.length);
-        //System.out.println(Arrays.toString(dataArray));
-
-
-        packetToSend = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);//create a new packet to send data
-
-        System.out.println("\nFloorSubsystem: Sending packet:");
-        System.out.println("To Scheduler: " +  packetToSend.getAddress());
-        System.out.println("Destination host port: " +  packetToSend.getPort());
-        int len =  packetToSend.getLength();
-        System.out.println("Length: " + len);
-        System.out.print("Containing: String - ");
-        System.out.println(new String(packetToSend.getData(),0,len)); // or could print "s"
-        System.out.println("Bytes - " + Arrays.toString(packetToSend.getData()));
+            byte[] dataArray = new byte[25];
+            System.arraycopy(dataStringArr, 0, dataArray, 0, dataStringArr.length);
+            //System.out.println(Arrays.toString(dataArray));
 
 
-        sendReceiveSocket.send(packetToSend);//send packet
-        System.out.println(new String(packetToSend.getData(), 0, packetToSend.getLength()));
+            packetToSend = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);//create a new packet to send data
+
+            System.out.println("\nFloorSubsystem: Sending packet:");
+            System.out.println("To Scheduler: " + packetToSend.getAddress());
+            System.out.println("Destination host port: " + packetToSend.getPort());
+            int len = packetToSend.getLength();
+            System.out.println("Length: " + len);
+            System.out.print("Containing: String - ");
+            System.out.println(new String(packetToSend.getData(), 0, len)); // or could print "s"
+            System.out.println("Bytes - " + Arrays.toString(packetToSend.getData()));
+
+
+            sendReceiveSocket.send(packetToSend);//send packet
+            System.out.println(new String(packetToSend.getData(), 0, packetToSend.getLength()));
+        }
 
 
         //receive data from scheduler
@@ -102,7 +107,7 @@ public class FloorSubsystem implements Runnable {
         System.out.println("\nFloorSubsystem: Packet received:");
         System.out.println("From host: " + receivedPacket.getAddress());
         System.out.println("Host port: " + receivedPacket.getPort());
-        len = receivedPacket.getLength();
+        int len = receivedPacket.getLength();
         System.out.println("Length: " + len);
         System.out.print("Containing: " );
         // Form a String from the byte array.
@@ -218,7 +223,7 @@ public class FloorSubsystem implements Runnable {
      * @param elevatorButton
      */
     public void convertInfoToInt (String floorNumber, String direction, String elevatorButton){
-        dataString = dataString +" "+floorNumber+" "+direction+" "+ elevatorButton;
+        //dataString = dataString +" "+floorNumber+" "+direction+" "+ elevatorButton;
 
         this.floorNumber = Integer.parseInt(floorNumber);
         this.elevatorButton = Integer.parseInt(elevatorButton);
@@ -230,7 +235,17 @@ public class FloorSubsystem implements Runnable {
         inputInfo.put("floorNumber", this.floorNumber);
         inputInfo.put("direction", this.direction);
         inputInfo.put("elevatorButton", this.elevatorButton);
+        floorData.add(new FloorData(this.floorNumber, direction, this.elevatorButton));
         System.out.println("Floor: "+this.floorNumber+"\n"+"Floor Button: "+this.direction+"\n"+"Car Button: "+this.elevatorButton);
+
+    }
+    public void printInfo(){
+        /*for (String name: inputInfo.keySet()){
+            String key = name;
+            String value = inputInfo.get(name).toString();
+            System.out.println(key + " " + value);
+        }*/
+        System.out.println(floorData);
     }
 
     /**
@@ -282,15 +297,16 @@ public class FloorSubsystem implements Runnable {
         Scheduler scheduler = new Scheduler(2, 6);
         FloorSubsystem f = new FloorSubsystem(scheduler, "elevatorInputs.txt");
         //ElevatorSubsystem e = new ElevatorSubsystem();
-        //f.readInputFile();
+        f.readInputFile();
+        f.printInfo();
         //System.out.println(f.getDataString());
         //f.sendInfoInPacket();
 
-        Thread floorSubsystem = new Thread(f);
-        Thread schedulerThread = new Thread(scheduler);
+        //Thread floorSubsystem = new Thread(f);
+        //Thread schedulerThread = new Thread(scheduler);
         //Thread elevatorSystem = new Thread(e);
-        floorSubsystem.start();
-        schedulerThread.start();
+        //floorSubsystem.start();
+        //schedulerThread.start();
         //elevatorSystem.start();
         //System.out.println(f.readInputFile("elevatorInputs.txt"));
     }

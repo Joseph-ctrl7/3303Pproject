@@ -32,6 +32,7 @@ public class Scheduler implements Runnable {
     private boolean floorNotified = false;
     public ArrayList numbers;
     private Map<Integer, ElevatorSubsystem> elevators;
+    private ArrayList<FloorData> pendingRequests;
 
     private Queue<DatagramPacket> queue;
     private int portNumber;
@@ -332,6 +333,7 @@ public class Scheduler implements Runnable {
      * This method receives the input from the Floorsubsystem and sends it to the ElevatorSubsystem
      */
     public synchronized void receiveInfo(String time, String floorNumber, String direction, String elevatorButton) {
+       // pendingRequests.add(new FloorData());
         this.time = time;
         this.floorNumber = Integer.parseInt(floorNumber);
         this.elevatorButton = 5; //Integer.parseInt(elevatorButton, 10);
