@@ -16,7 +16,7 @@ public class EndState extends State {
 	 */
 	public void closeDoor() {
 		try {
-			System.out.println("Closing Doors.");
+			System.out.println("Closing Doors");
 			Thread.sleep(CloseDoorTime);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
@@ -41,7 +41,7 @@ public class EndState extends State {
 	 */
 	public void movElevator() {
 		try {
-			System.out.println("Opening Doors.");
+			System.out.println("Moving elevator");
 			Thread.sleep(OpenDoorTime);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
