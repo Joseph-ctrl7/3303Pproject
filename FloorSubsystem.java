@@ -74,7 +74,7 @@ public class FloorSubsystem implements Runnable {
             byte[] dataStringArr = dataString.getBytes();
             byte[] dataArray;
             if(f.getDirection().equals("Down")){
-                dataArray = new byte[24];
+                dataArray = new byte[25];
             }else {
                 dataArray = new byte[23];
             }
@@ -308,7 +308,7 @@ public class FloorSubsystem implements Runnable {
 
     public static void main(String[] args) throws IOException, ParseException {
         //Elevator elevator = new Elevator();
-        Scheduler scheduler = new Scheduler(2, 6, 22);
+        //Scheduler scheduler = new Scheduler(2, 6, 22);
         FloorSubsystem f = new FloorSubsystem("elevatorInputs.txt", 21);
         //ElevatorSubsystem e = new ElevatorSubsystem();
         //f.readInputFile();
@@ -317,10 +317,10 @@ public class FloorSubsystem implements Runnable {
         //f.sendInfoInPacket();
 
         Thread floorSubsystem = new Thread(f);
-        Thread schedulerThread = new Thread(scheduler);
+        //Thread schedulerThread = new Thread(scheduler);
         //Thread elevatorSystem = new Thread(e);
         floorSubsystem.start();
-        schedulerThread.start();
+        //schedulerThread.start();
         //elevatorSystem.start();
         //System.out.println(f.readInputFile("elevatorInputs.txt"));
     }

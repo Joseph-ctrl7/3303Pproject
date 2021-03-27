@@ -96,7 +96,7 @@ public class Scheduler implements Runnable {
     public void receiveAndProcessPacket() throws UnknownHostException {
         try {
             //receiveSocket = new DatagramSocket(portNumber); //creates a socket bound to port portNumber
-            byte[] data = new byte[23];
+            byte[] data = new byte[25];
             System.out.println(Thread.currentThread().getName() + " is running on port: " + port);
             local = InetAddress.getLocalHost(); //Creates inetaddress containing localhost
             byte[] ackData = "ack".getBytes(); //Defines ack byte array
@@ -107,7 +107,7 @@ public class Scheduler implements Runnable {
             while (true) { //loop infinitely
                 receivePacket = new DatagramPacket(data, data.length);
                 receiveSocket.receive(receivePacket);//Recieve a packet
-                System.out.println("\nScheduler: Packet received from floorSubsystem:");
+                System.out.println("\nScheduler: Packet received:");
                 System.out.println("From host: " + receivePacket.getAddress());
                 System.out.println("Host port: " + receivePacket.getPort());
                 len = receivePacket.getLength();
@@ -124,10 +124,10 @@ public class Scheduler implements Runnable {
                         receiveSocket.send(ackPacket);//acknowledge that packet
                         System.out.println("no request");
                     } else {
+                        System.out.println("pending requests left: "+pendingRequests.size());
                         Iterator<FloorData> iter = pendingRequests.iterator();
                         while(iter.hasNext()){
                             FloorData f = iter.next();
-                            System.out.println(elevatorsAndPorts.get(receivePacket.getPort()).getCurrentFloor());
                             if(f.getFloorNumber() == elevatorsAndPorts.get(receivePacket.getPort()).getCurrentFloor()){
                                 ackPacket = new DatagramPacket(doorRequest, doorRequest.length, local, receivePacket.getPort());
                                 receiveSocket.send(ackPacket);
@@ -163,6 +163,7 @@ public class Scheduler implements Runnable {
 
                     }
                 }
+
             }
 
         } catch (IOException e) {
@@ -192,12 +193,15 @@ public class Scheduler implements Runnable {
                 chosenElevator = elevators.get(i);
                 bestPort = chosenElevator.getPort();
             }
-            if(!(elevators.get(i).state.toString().equals("IDLE"))){
-                System.out.println("No available elevator for floor "+pickupFloor+" request");
-                return -1;
-            }
             else  {
+                if(!(elevators.get(i).state.toString().equals("IDLE"))){
+                    System.out.println("No elevators close by for floor "+pickupFloor+" request");
+                    return -1;
+                }
                 if (elevators.get(i).state.toString().equals("IDLE")) {
+                    if(elevators.get(i).getCurrentFloor() == pickupFloor){
+                        chosenElevator = elevators.get(i);
+                    }
                     int tempDifference = Math.abs(elevators.get(i).getCurrentFloor() - pickupFloor);
                     if (tempDifference < minDifferece) {
                         minDifferece = tempDifference;
@@ -527,9 +531,9 @@ public class Scheduler implements Runnable {
 
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
-        //Scheduler s = new Scheduler(1, 6, 22);
-        //Thread schedulerThread = new Thread(s);
-        //schedulerThread.start();
+        Scheduler s = new Scheduler(2, 6, 22);
+        Thread schedulerThread = new Thread(s);
+        schedulerThread.start();
         //InetAddress address2 = InetAddress.getByName("208.67.222.222");
        // System.out.println(address2.getHostName());
         //String j = "hello world";

@@ -9,6 +9,8 @@
  */
 
 
+import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,6 +28,7 @@ public class Elevator {
     private boolean openDoors;
     private boolean elevatorNotified;
     private boolean hasArrived;
+    private ElevatorSubsystem e;
 
     @SuppressWarnings({ "unchecked" })
     private Set<Integer> pressedButtons = (Set<Integer>) new HashSet<Integer>();
@@ -33,7 +36,7 @@ public class Elevator {
     private int floorButton;
     private int currentFloor;
 
-    public Elevator() {
+    public Elevator(ElevatorSubsystem e) {
 
         state = State.STOPPED;
         buttonPressed = false;
@@ -43,6 +46,7 @@ public class Elevator {
         openDoors = false;
         elevatorNotified = false;
         hasArrived = false;
+        this.e = e;
 
     }
 
@@ -89,12 +93,12 @@ public class Elevator {
 
     public synchronized void openDoors()  {
         openDoors = true;
-        System.out.println("Doors Opening........");
+        System.out.println("port:"+e.getPort()+" Elevator Doors Opening........");
     }
 
     public synchronized void closeDoors(){
         openDoors = false;
-        System.out.println("Doors Closing........");
+        System.out.println("port:"+e.getPort()+" Elevator Doors Closing........");
     }
 
     /**
@@ -141,45 +145,71 @@ public class Elevator {
      * @param currentElevatorFloor where the elevator is currently at
      * @param floorNumber floor the passenger is at/ where passenger wants to go(depending on elevator functionality)
      */
-    public synchronized void startMotor(int direction, int currentElevatorFloor, int floorNumber) {
-        System.out.println("Elevator is currently at floor "+currentElevatorFloor);
+    public synchronized void startMotor(int direction, int currentElevatorFloor, int floorNumber) throws InterruptedException, IOException {
+        //System.out.println("port:"+e.getPort()+" Elevator is currently at floor "+currentElevatorFloor);
         while(currentElevatorFloor != floorNumber) {
             if (direction == 1) {
                 if (currentElevatorFloor > floorNumber) {
+                    System.out.println("port:"+e.getPort()+" Elevator is currently at floor "+currentElevatorFloor);
                     this.state = State.MOVING_DOWN;
                     int nextFloor = currentElevatorFloor - 1;
-                    System.out.println("Elevator is going DOWN to floor "+nextFloor);
+                    wait(5000);
+                    e.setCurrentFloor(currentElevatorFloor);
+                    e.notifyOnArrival();
+                    System.out.println("port:"+e.getPort()+" Elevator is going DOWN to floor "+nextFloor);
                     currentElevatorFloor--;
                 }
                 if (currentElevatorFloor < floorNumber) {
+                    System.out.println("port:"+e.getPort()+" Elevator is currently at floor "+currentElevatorFloor);
                     this.state = State.MOVING_UP;
                     int nextFloor = currentElevatorFloor + 1;
-                    System.out.println("Elevator is going UP to floor "+nextFloor);
+                    wait(5000);
+                    e.setCurrentFloor(currentElevatorFloor);
+                    e.notifyOnArrival();
+                    System.out.println("port:"+e.getPort()+" Elevator is going UP to floor "+nextFloor);
                     currentElevatorFloor++;
                 }
             } else {
                 if (currentElevatorFloor < floorNumber) {
+                    System.out.println("port:"+e.getPort()+" Elevator is currently at floor "+currentElevatorFloor);
                     this.state = State.MOVING_UP;
                     int nextFloor = currentElevatorFloor + 1;
-                    System.out.println("Elevator is going UP to floor "+nextFloor);
+                    wait(5000);
+                    e.setCurrentFloor(currentElevatorFloor);
+                    e.notifyOnArrival();
+                    System.out.println("port:"+e.getPort()+" Elevator is going UP to floor "+nextFloor);
                     currentElevatorFloor++;
                 }
                 if (currentElevatorFloor > floorNumber) {
+                    System.out.println("port:"+e.getPort()+" Elevator is currently at floor "+currentElevatorFloor);
                     this.state = State.MOVING_DOWN;
                     int nextFloor = currentElevatorFloor - 1;
-                    System.out.println("Elevator is going DOWN to floor "+nextFloor);
+                    wait(5000);
+                    e.setCurrentFloor(currentElevatorFloor);
+                    e.notifyOnArrival();
+                    System.out.println("port:"+e.getPort()+" Elevator is going DOWN to floor "+nextFloor);
                     currentElevatorFloor--;
                 }
             }
         }
         if(currentElevatorFloor == floorNumber){
-            System.out.println("Elevator has arrived at floor "+floorNumber);
+            System.out.println("port:"+e.getPort()+" Elevator has arrived at floor "+floorNumber);
             hasArrived = true;
             this.currentFloor = currentElevatorFloor;
+            e.setCurrentFloor(currentElevatorFloor);
+            e.notifyOnArrival();
         }
 
         try {
             Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void wait(int x){
+        try {
+            Thread.sleep(x);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

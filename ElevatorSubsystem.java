@@ -88,9 +88,6 @@ public class ElevatorSubsystem implements Runnable{
         }
         String arr[] = received.split(" ");// split the received packet into a String array
         System.out.println(Arrays.toString(arr));
-        if (arr[0].equals("NOTIFICATION")){
-
-        }
         this.receiveSchedulerInfo(arr[4], arr[2], arr[3]);//process the received data from the packet
 
         startElevatorSM(elevator, directionButton, currentElevatorFloor, floorButton); //start the elevator statemachine
@@ -108,7 +105,7 @@ public class ElevatorSubsystem implements Runnable{
         System.out.print("Data: ");
         System.out.println(new String(sendPacket.getData(),0,sendPacket.getLength()));
         try {
-            sendSocket.send(sendPacket);
+            receiveSocket.send(sendPacket);
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);
