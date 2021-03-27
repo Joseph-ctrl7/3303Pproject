@@ -29,7 +29,7 @@ public class EndState extends State {
 	 */
 	public void openElevator() {
 		System.out.println("elevator moving to floor" + elevator.getFloor());
-		elevator.setState(elevator.isMoving());
+		//elevator.setState(elevator.isMoving());
 		try {
 			Thread.sleep(FloorToFloorTime);
 		} catch (InterruptedException e) {
