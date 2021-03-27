@@ -28,8 +28,9 @@ public class EndState extends State {
 	 *  Check if elevator is moving
 	 */
 	public void openElevator() {
+		System.out.println("elevator moving to floor" + elevator.getFloor());
+		elevator.setState(elevator.isMoving());
 		try {
-			System.out.println("elevator moving");
 			Thread.sleep(FloorToFloorTime);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
