@@ -25,7 +25,7 @@ public class EndState extends State {
 
 
 	/**
-	 * Check if door is opening
+	 *  Check if elevator is moving
 	 */
 	public void openElevator() {
 		try {
@@ -37,11 +37,11 @@ public class EndState extends State {
 		
 	}
 	/**
-	 * Check if elevator is moving
+	 * Check if door is opening
 	 */
 	public void movElevator() {
 		try {
-			System.out.println("Moving elevator");
+			System.out.println("opening door");
 			Thread.sleep(OpenDoorTime);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
