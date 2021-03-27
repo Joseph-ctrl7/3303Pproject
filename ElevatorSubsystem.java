@@ -30,6 +30,7 @@ public class ElevatorSubsystem implements Runnable{
     public ElevatorMovingState state;
     private ElevatorDoorState doorState;
     private boolean operateDoors = false;
+    private boolean isMoving = false;
     private int port;
     DatagramPacket sendPacket, receivePacket;
     DatagramSocket receiveSocket, sendSocket;
@@ -42,13 +43,13 @@ public class ElevatorSubsystem implements Runnable{
         this.scheduler = scheduler;
         elevatorData = "";
         this.port = port;
-        elevator = new Elevator();
+        elevator = new Elevator(this);
         elevatorInfo = new ArrayList<>();
         state = ElevatorMovingState.IDLE;
         doorState = ElevatorDoorState.CLOSE;
         Random rand = new Random();
         currentElevatorFloor = rand.nextInt(6); //elevator goes up to the 6th floor
-        receiveSocket = new DatagramSocket(scheduler.elevatorPort);
+        receiveSocket = new DatagramSocket(this.port);
         sendSocket = new DatagramSocket();
 
     }
@@ -59,7 +60,7 @@ public class ElevatorSubsystem implements Runnable{
      * @throws UnknownHostException
      * @throws InterruptedException
      */
-    public synchronized void receiveAndSend() throws UnknownHostException, InterruptedException {
+    public synchronized void receiveAndSend() throws IOException, InterruptedException {
         byte data[] = new byte[100];
         receivePacket = new DatagramPacket(data, data.length);
 
@@ -74,30 +75,34 @@ public class ElevatorSubsystem implements Runnable{
         }
 
         // Process the received datagram.
-        System.out.println("ElevatorSubsystem: Packet received:");
+        System.out.println("\nElevatorSubsystem: Packet received:");
         System.out.println("From host: " + receivePacket.getAddress());
         System.out.println("Host port: " + receivePacket.getPort());
         int len = receivePacket.getLength();
         System.out.println("Length: " + len);
-        System.out.print("Containing: " );
-
         // Form a String from the byte array.
         String received = new String(data,0,len);
-        System.out.println(received + "\n");
+        System.out.println("Containing: "+received + "\n");
+        if(received.equals("Door")){
+            this.doorsStateMachine(elevator);
+        }
         String arr[] = received.split(" ");// split the received packet into a String array
         System.out.println(Arrays.toString(arr));
-        this.receiveSchedulerInfo(arr[3], arr[1], arr[2]);//process the received data from the packet
+        if (arr[0].equals("NOTIFICATION")){
+
+        }
+        this.receiveSchedulerInfo(arr[4], arr[2], arr[3]);//process the received data from the packet
 
         startElevatorSM(elevator, directionButton, currentElevatorFloor, floorButton); //start the elevator statemachine
 
 
         elevatorData = elevatorData+previousElevatorFloor+" "+directionButton; //store the data gotten from the elevator
         byte elevatorStringArr[] = elevatorData.getBytes();
-        byte[] dataArray = new byte[25];
+        byte[] dataArray = new byte[6];
         System.arraycopy(elevatorStringArr, 0, dataArray, 0, elevatorStringArr.length);
         //send packet back to scheduler
         sendPacket = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);
-        System.out.println("Sending data from elevator:");
+        System.out.println("\nElevatorSubsystem: Sending packet:");
         System.out.println("To: " + sendPacket.getAddress());
         System.out.println("host port: " + sendPacket.getPort());
         System.out.print("Data: ");
@@ -124,8 +129,6 @@ public class ElevatorSubsystem implements Runnable{
         this.destinationFloor = destinationFloor;
     }
 
-
-
     public int getFloor() {
         return this.destinationFloor;
     }
@@ -145,6 +148,9 @@ public class ElevatorSubsystem implements Runnable{
     public int getElevatorButton() {
         return this.floorButton;
     }
+    public Elevator getElevator(){
+        return elevator;
+    }
 
     public int getCurrentFloor() {
         return this.currentElevatorFloor;
@@ -156,9 +162,56 @@ public class ElevatorSubsystem implements Runnable{
 
     public void setCurrentFloor(int currentFloor) {
         this.currentElevatorFloor = currentFloor;
+        System.out.println(currentElevatorFloor);
     }
 
     //-------------------------------------------------------------------------------------------------------------------
+
+
+    /**
+     * notifies the scheduler about the arrival of an elevator
+     */
+    public synchronized void notifyOnArrival() throws InterruptedException, IOException {
+        String notificationData = "ArrivalNotification"; //store the data gotten from the elevator
+        byte elevatorStringArr[] = notificationData.getBytes();
+        byte[] dataArray = new byte[19];
+        System.arraycopy(elevatorStringArr, 0, dataArray, 0, elevatorStringArr.length);
+        //send packet back to scheduler
+        sendPacket = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);
+        System.out.println("Sending data from elevator:");
+        System.out.println("To: " + sendPacket.getAddress());
+        System.out.println("host port: " + sendPacket.getPort());
+        System.out.print("Data: ");
+        System.out.println(new String(sendPacket.getData(),0,sendPacket.getLength()));
+        try {
+            receiveSocket.send(sendPacket);//send notification packet to scheduler
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        System.out.println("sent\n");
+
+
+        byte[] data = new byte[100];
+        sendPacket = new DatagramPacket(data, data.length);
+        receiveSocket.receive(sendPacket);
+        System.out.println("\nElevatorSubsystem: Packet received:");
+        System.out.println("From host: " + sendPacket.getAddress());
+        System.out.println("Host port: " + sendPacket.getPort());
+        int len = sendPacket.getLength();
+        System.out.println("Length: " + len);
+        System.out.print("Containing: " );
+
+        // Form a String from the byte array.
+        String received = new String(data,0,len);
+        System.out.println(received + "\n");
+        if(received.equals("Door")){// if a door request is received from the scheduler, open or close doors
+            this.doorsStateMachine(elevator);
+        }
+        else{
+            notifyAll();
+        }
+    }
 
     /**
      * checks if the elevator info is available
@@ -175,7 +228,7 @@ public class ElevatorSubsystem implements Runnable{
      * this method gets the information from the scheduler
      */
     public void receiveSchedulerInfo(String elevatorButton, String floorButton, String direction) {
-        this.destinationFloor = 5;//Integer.parseInt(elevatorButton);
+        this.destinationFloor = Integer.parseInt(elevatorButton);
         this.floorButton = Integer.parseInt(floorButton);
         if(direction.equals("Up")){
             this.directionButton = 1;
@@ -194,15 +247,17 @@ public class ElevatorSubsystem implements Runnable{
      * this method is the state machine responsible for elevator movement
      * @param e elevator to be notified
      */
-    public synchronized void startElevatorSM(Elevator e, int direction, int currentElevatorFloor, int floorNumber) throws InterruptedException {
+    public synchronized void startElevatorSM(Elevator e, int direction, int currentElevatorFloor, int floorNumber) throws InterruptedException, IOException {
         switch(state){
             case IDLE: //when elevator is idle and a request is made
                 if(this.elevatorInfo.contains(direction)) {
                     if (direction == 0) {
                         state = ElevatorMovingState.DOWN;
+                        isMoving = true;
                     }
                     if (direction == 1) {
                         state = ElevatorMovingState.UP;
+                        isMoving = true;
                     }
                     e.turnOnLamps(this.destinationFloor, direction); //notify elevator to turn on lamps
                     e.startMotor(direction, currentElevatorFloor, floorNumber);//notify elevator to start motors
@@ -213,6 +268,7 @@ public class ElevatorSubsystem implements Runnable{
                     this.currentElevatorFloor = this.elevator.getCurrentFloor();
                     scheduler.notifyScheduler(true); //notify scheduler that elevator has arrived
                     state = ElevatorMovingState.IDLE;
+                    isMoving = false;
                 }
                 break;
             case DOWN: //when elevator is going down and arrives at its destination
@@ -221,6 +277,7 @@ public class ElevatorSubsystem implements Runnable{
                     this.currentElevatorFloor = this.elevator.getCurrentFloor();
                     scheduler.notifyScheduler(true); //notify scheduler that elevator has arrived
                     state = ElevatorMovingState.IDLE;
+                    isMoving = false;
                 }
                 break;
         }
@@ -258,7 +315,7 @@ public class ElevatorSubsystem implements Runnable{
         }
         try {
             this.receiveAndSend();
-        } catch (UnknownHostException | InterruptedException e) {
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
         try {
@@ -271,7 +328,7 @@ public class ElevatorSubsystem implements Runnable{
 
         try {
             this.startElevatorSM(this.elevator, this.directionButton, this.currentElevatorFloor, this.destinationFloor); //heads over to the destination floor
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | IOException e) {
             e.printStackTrace();
         }
 

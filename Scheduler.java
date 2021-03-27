@@ -11,6 +11,7 @@
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Scheduler implements Runnable {
@@ -26,13 +27,17 @@ public class Scheduler implements Runnable {
     private int numberOfElevators;
     private int numberOfFloors;
     private ElevatorSubsystem subsystem;
-    private ElevatorSubsystem s;
+    private ElevatorSubsystem chosenElevator;
+    private int bestPort;
     private Elevator elevator;
     private SchedulerStates state;
     private boolean floorNotified = false;
     public ArrayList numbers;
     private Map<Integer, ElevatorSubsystem> elevators;
+    private Map<Integer, ElevatorSubsystem> elevatorsAndPorts;
+    private Queue<FloorData> requests;
     private ArrayList<FloorData> pendingRequests;
+    private long creationTime, startTime, completedTime;
 
     private Queue<DatagramPacket> queue;
     private int portNumber;
@@ -42,9 +47,9 @@ public class Scheduler implements Runnable {
     private DatagramPacket receivePacket, sendPacket;
     private DatagramPacket ackPacket;
     InetAddress address;
+    int port;
     int elevatorPort;
 
-    Thread sThread;
 
     private Map<String, Integer> inputInfo;
     private Map<String, Integer> elevatorData;
@@ -54,15 +59,20 @@ public class Scheduler implements Runnable {
     public enum SchedulerStates {LISTENING, RECEIVED, ELEVATORINFO, FLOORINFO}
 
 
-    public Scheduler(int numberOfElevators, int numberOfFloors) throws SocketException {
+    public Scheduler(int numberOfElevators, int numberOfFloors, int port) throws SocketException {
         this.numberOfElevators = numberOfElevators;
         this.numberOfFloors = numberOfFloors;
+        this.port = port;
         elevators = new HashMap();
+        elevatorsAndPorts = new HashMap<>();
         inputInfo = new HashMap();
         elevatorData = new HashMap();
+        queue = new LinkedList<>();
+        requests = new LinkedList<>();
+        pendingRequests = new ArrayList<>();
         this.elevator = elevator;
         state = SchedulerStates.LISTENING;
-        receiveSocket = new DatagramSocket(22);
+        receiveSocket = new DatagramSocket(port);
         sendSocket = new DatagramSocket();
 
         numbers = new ArrayList();
@@ -77,123 +87,87 @@ public class Scheduler implements Runnable {
             subsystem = new ElevatorSubsystem(elevatorPort,this);
             subsystem.setCurrentFloor(this.getSpecificLocation());// assign a location to an elevator
             elevators.put(i, subsystem);
+            elevatorsAndPorts.put(elevatorPort, subsystem);
         }
 
     }
 
-    public synchronized void sendReceivePacket() throws SocketException, UnknownHostException {
-        byte data[] = new byte[100];
-        receivePacket = new DatagramPacket(data, data.length);
 
-        //receive datagramPacket from FloorSubsystem
+    public void receiveAndProcessPacket() throws UnknownHostException {
         try {
-            receiveSocket.receive(receivePacket);
-        } catch (IOException e) {
-            System.out.print("\nIO Exception: likely:");
-            System.out.println("Receive Socket Timed Out.\n" + e);
-            e.printStackTrace();
-            System.exit(1);
-        }
+            //receiveSocket = new DatagramSocket(portNumber); //creates a socket bound to port portNumber
+            byte[] data = new byte[23];
+            System.out.println(Thread.currentThread().getName() + " is running on port: " + port);
+            local = InetAddress.getLocalHost(); //Creates inetaddress containing localhost
+            byte[] ackData = "ack".getBytes(); //Defines ack byte array
+            byte[] negAck = "NA".getBytes();
+            byte[] doorRequest = "Door".getBytes();
+            receivePacket = new DatagramPacket(data, data.length); //create the packet to recieve into
+            int len = receivePacket.getLength();
+            while (true) { //loop infinitely
+                receivePacket = new DatagramPacket(data, data.length);
+                receiveSocket.receive(receivePacket);//Recieve a packet
+                System.out.println("\nScheduler: Packet received from floorSubsystem:");
+                System.out.println("From host: " + receivePacket.getAddress());
+                System.out.println("Host port: " + receivePacket.getPort());
+                len = receivePacket.getLength();
+                System.out.println("Length: " + len);
+                //System.out.print("Containing: ");
+                // Form a String from the byte array
+                String received = new String(data, 0, len);
+                System.out.println("Containing: "+received + "\n");
 
-        System.out.println("\nScheduler: Packet received from floorSubsystem:");
-        System.out.println("From host: " + receivePacket.getAddress());
-        System.out.println("Host port: " + receivePacket.getPort());
-        int len = receivePacket.getLength();
-        System.out.println("Length: " + len);
-        System.out.print("Containing: " );
-        // Form a String from the byte array.
-        String received = new String(data,0,len);
-        System.out.println(received + "\n");
-        String arr[] = received.split(" ");
-        this.receiveInfo(arr[0], arr[1], arr[2], arr[3]);
-        startSchedulerSM();
+                if(received.equals("ArrivalNotification")) { //If the recievedPacket was a request
+                    if (pendingRequests.isEmpty()) { //If there are no packets to forward
+                        ackPacket = new DatagramPacket(negAck, negAck.length, local, receivePacket.getPort()); //acknowledge that packet
+//						printPacket(ackPacket, true);
+                        receiveSocket.send(ackPacket);//acknowledge that packet
+                        System.out.println("no request");
+                    } else {
+                        Iterator<FloorData> iter = pendingRequests.iterator();
+                        while(iter.hasNext()){
+                            FloorData f = iter.next();
+                            System.out.println(elevatorsAndPorts.get(receivePacket.getPort()).getCurrentFloor());
+                            if(f.getFloorNumber() == elevatorsAndPorts.get(receivePacket.getPort()).getCurrentFloor()){
+                                ackPacket = new DatagramPacket(doorRequest, doorRequest.length, local, receivePacket.getPort());
+                                receiveSocket.send(ackPacket);
+                                f.setRequestMet(true);
+                                //System.out.println("floor number met");
+                            }
+                            if((f.getElevatorButton() == elevatorsAndPorts.get(receivePacket.getPort()).getCurrentFloor()) && (f.getRequestMet())){
+                                ackPacket = new DatagramPacket(doorRequest, doorRequest.length, local, receivePacket.getPort());
+                                receiveSocket.send(ackPacket);
+                                iter.remove();
+                                System.out.println("request removed");
+                            }
+                            else{
+                                ackPacket = new DatagramPacket(negAck, negAck.length, local, receivePacket.getPort());
+                                receiveSocket.send(ackPacket);
+                                System.out.println("sent");
+                            }
+                        }
+                    }
+                } else { //if the recievedPacket was not a request, it must have been data
+                    //System.out.println("received floor");
+                    String arr[] = received.split(" ");
+                    if(arr[0].equals("FLOOR")) {
+                        this.receiveInfo(arr[1], arr[2], arr[3], arr[4]);
+                        int port = this.getBestElevator(Integer.parseInt(arr[2]));
+                        if(port != -1) {
+                            receivePacket.setPort(port);
+                            receiveSocket.send(receivePacket);
+                        }
+                        else{
+                            pendingRequests.add(new FloorData(arr[1], Integer.parseInt(arr[2]), arr[3], Integer.parseInt(arr[4])));
+                        }
 
+                    }
+                }
+            }
 
-
-
-
-        int ePort = this.getBestElevator(floorNumber);
-        //send received packet to elevatorSubsystem
-        sendPacket = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), ePort);
-
-        System.out.println("\nScheduler: Sending packet:");
-        System.out.println("To host: " + sendPacket.getAddress());
-        System.out.println("Destination host port: " + ePort);
-        int length = sendPacket.getLength();
-        System.out.println("Length: " + length);
-        System.out.print("Containing: ");
-        System.out.println(new String(sendPacket.getData(),0,length)); // or could print "s"
-
-        // Send the datagram packet to the server via the send/receive socket.
-        try {
-            sendSocket.send(sendPacket);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-
-        System.out.println("Scheduler: Packet sent.\n");
-
-
-
-
-        //receive from elevatorSubsystem
-        byte elevatorData[] = new byte[100];
-        receivePacket = new DatagramPacket(elevatorData, elevatorData.length);
-        //System.out.println("\nScheduler: LISTENING");
-        try {
-            receiveSocket.receive(receivePacket);
-        } catch (IOException e) {
-            System.out.print("\nIO Exception: likely:");
-            System.out.println("Receive Socket Timed Out.\n" + e);
-            e.printStackTrace();
-            System.exit(1);
-        }
-
-        System.out.println("\nScheduler: Packet received from elevatorSubsystem:");
-        System.out.println("From host: " + receivePacket.getAddress());
-        System.out.println("Host port: " + receivePacket.getPort());
-        len = receivePacket.getLength();
-        System.out.println("Length: " + len);
-        System.out.print("Containing: " );
-        // Form a String from the byte array.
-        received = new String(elevatorData,0,len);
-        System.out.println(received + "\n");
-        arr = received.split(" ");
-
-        String temp[] = new String[2];
-        System.arraycopy(arr, 0, temp, 0, temp.length);
-
-        this.receiveElevatorData(temp[0], temp[1]);
-        startSchedulerSM();
-
-
-
-
-        //send to floorSubsystem
-        sendPacket = new DatagramPacket(elevatorData, receivePacket.getLength(), receivePacket.getAddress(), 21);
-
-        System.out.println("\nScheduler: Sending packet:");
-        System.out.println("To host: " + sendPacket.getAddress());
-        System.out.println("Destination host port: " + sendPacket.getPort());
-        length = sendPacket.getLength();
-        System.out.println("Length: " + length);
-        System.out.print("Containing: ");
-        System.out.println(new String(sendPacket.getData(),0,length)); // or could print "s"
-
-        // Send the datagram packet to the server via the send/receive socket.
-        try {
-            sendSocket.send(sendPacket);
         } catch (IOException e) {
             e.printStackTrace();
-            System.exit(1);
         }
-
-        System.out.println("Scheduler: Packet sent.\n");
-
-        sendSocket.close();
-        receiveSocket.close();
-
     }
 
 
@@ -210,19 +184,25 @@ public class Scheduler implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        ElevatorSubsystem chosenElevator = null;
+        chosenElevator = null;
         int minDifferece = 10;
         for (int i = 1; i < numberOfElevators+1; i++) {
             if (elevators.get(i).getCurrentFloor() == pickupFloor) {
                 minDifferece = 0;
                 chosenElevator = elevators.get(i);
+                bestPort = chosenElevator.getPort();
             }
-            else {
+            if(!(elevators.get(i).state.toString().equals("IDLE"))){
+                System.out.println("No available elevator for floor "+pickupFloor+" request");
+                return -1;
+            }
+            else  {
                 if (elevators.get(i).state.toString().equals("IDLE")) {
                     int tempDifference = Math.abs(elevators.get(i).getCurrentFloor() - pickupFloor);
                     if (tempDifference < minDifferece) {
                         minDifferece = tempDifference;
                         chosenElevator = elevators.get(i);
+                        bestPort = chosenElevator.getPort();
                     }
                 }
                 if (elevators.get(i).getCurrentFloor() > pickupFloor && elevators.get(i).state.toString().equals("DOWN")) {
@@ -230,6 +210,7 @@ public class Scheduler implements Runnable {
                     if (tempDifference < minDifferece) {
                         minDifferece = tempDifference;
                         chosenElevator = elevators.get(i);
+                        bestPort = chosenElevator.getPort();
                     }
                 }
                 if (elevators.get(i).getCurrentFloor() < pickupFloor && elevators.get(i).state.toString().equals("UP")) {
@@ -238,6 +219,7 @@ public class Scheduler implements Runnable {
                     if (tempDifference < minDifferece) {
                         minDifferece = tempDifference;
                         chosenElevator = elevators.get(i);
+                        bestPort = chosenElevator.getPort();
                     }
                 }
             }
@@ -247,6 +229,34 @@ public class Scheduler implements Runnable {
         Thread elevatorSystem = new Thread(chosenElevator);
         elevatorSystem.start();
         return chosenElevator.getPort();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public void notifyOnArrival() throws InterruptedException {
+        for(FloorData f: requests){
+            if(f.getFloorNumber() == chosenElevator.getCurrentFloor()){
+                chosenElevator.doorsStateMachine(chosenElevator.getElevator());
+            }
+        }
     }
 
 
@@ -288,6 +298,10 @@ public class Scheduler implements Runnable {
     }
     public SchedulerStates getState() {
         return state;
+    }
+
+    public int getPort(){
+        return port;
     }
     //-----------------------------------------------------------------------------------------------------------------------------------------
     /**
@@ -333,10 +347,9 @@ public class Scheduler implements Runnable {
      * This method receives the input from the Floorsubsystem and sends it to the ElevatorSubsystem
      */
     public synchronized void receiveInfo(String time, String floorNumber, String direction, String elevatorButton) {
-       // pendingRequests.add(new FloorData());
         this.time = time;
         this.floorNumber = Integer.parseInt(floorNumber);
-        this.elevatorButton = 5; //Integer.parseInt(elevatorButton, 10);
+        this.elevatorButton = Integer.parseInt(elevatorButton);
         if(direction.equals("Up")){
             this.direction = 1;
         }else{
@@ -346,6 +359,7 @@ public class Scheduler implements Runnable {
         inputInfo.put("floorNumber", this.floorNumber);
         inputInfo.put("direction",this.direction);
         inputInfo.put("elevatorButton", this.elevatorButton);
+        requests.add(new FloorData(this.time, this.floorNumber, direction, this.elevatorButton));
         dataReceived = true;
         floorInfoReceived = true;
 
@@ -385,7 +399,7 @@ public class Scheduler implements Runnable {
      */
     public synchronized void receiveElevatorData(String currentFloor, String direction) {
         this.currentFloor = Integer.parseInt(currentFloor);
-        this.direction = 1;//Integer.parseInt(direction);
+        this.direction = Integer.parseInt(direction);
 
         elevatorData.put("currentFloor", this.currentFloor);
         elevatorData.put("direction", this.direction);
@@ -505,21 +519,28 @@ public class Scheduler implements Runnable {
             e.printStackTrace();
         }
         try {
-            sendReceivePacket();
-        } catch (SocketException | UnknownHostException e) {
+            receiveAndProcessPacket();
+        } catch (UnknownHostException e) {
             e.printStackTrace();
         }
     }
 
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
-        Scheduler s = new Scheduler(2, 6);
+        //Scheduler s = new Scheduler(1, 6, 22);
+        //Thread schedulerThread = new Thread(s);
+        //schedulerThread.start();
         //InetAddress address2 = InetAddress.getByName("208.67.222.222");
        // System.out.println(address2.getHostName());
         //String j = "hello world";
         //String arr[] = j.split(" ");
         //System.out.println(Arrays.toString(arr));
-        s.getBestElevator(2);
+        //long startTime = System.currentTimeMillis();
+        //System.out.println(startTime);
+        //s.getBestElevator(2);
+        //long endTime = System.currentTimeMillis();
+        //System.out.println(endTime);
+        //System.out.println(endTime - startTime);
     }
 }
 

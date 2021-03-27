@@ -23,6 +23,7 @@ public class FloorSubsystem implements Runnable {
     private int downButton = 0;
     private int upButton = 1;
     private Timestamp time;
+    private String timeString;
     private int direction;
     private int floorNumber;
     private Floor floor;
@@ -36,6 +37,7 @@ public class FloorSubsystem implements Runnable {
     private boolean floorSubsystemNotified = false;
     private boolean dataValidated = false;
     private String dataString;
+    private int port;
 
     DatagramSocket sendReceiveSocket;
     DatagramPacket packetToSend;
@@ -43,16 +45,17 @@ public class FloorSubsystem implements Runnable {
     DatagramPacket replyPacket;
 
 
-    public FloorSubsystem(Scheduler scheduler, String inputFile){
+    public FloorSubsystem(String inputFile, int port){
         this.scheduler = scheduler;
         this.inputFile = inputFile;
         inputInfo = new HashMap<String, Integer>();
         elevatorInfo = new ArrayList<>();
         floorData = new ArrayList<>();
         floor = new Floor();
+        this.port = port;
 
         try {
-            sendReceiveSocket = new DatagramSocket(21);
+            sendReceiveSocket = new DatagramSocket(port);
         } catch (SocketException se) {   // Can't create the socket.
             se.printStackTrace();
             System.exit(1);
@@ -64,14 +67,19 @@ public class FloorSubsystem implements Runnable {
      * this method is responsible for sending and receiving data packets from the scheduler
      * @throws IOException
      */
-    public synchronized void sendAndReceiveInfoInPacket() throws IOException {
+    public synchronized void sendAndReceiveInfoInPacket() throws IOException, InterruptedException {
         for(FloorData f: floorData) {
-            dataString = dataString +" "+f.getFloorNumber()+" "+f.getDirection()+" "+ f.getElevatorButton();
+            dataString = f.getTime();
+            dataString ="FLOOR "+ dataString +" "+f.getFloorNumber()+" "+f.getDirection()+" "+f.getElevatorButton();
             byte[] dataStringArr = dataString.getBytes();
-
-            byte[] dataArray = new byte[25];
+            byte[] dataArray;
+            if(f.getDirection().equals("Down")){
+                dataArray = new byte[24];
+            }else {
+                dataArray = new byte[23];
+            }
             System.arraycopy(dataStringArr, 0, dataArray, 0, dataStringArr.length);
-            //System.out.println(Arrays.toString(dataArray));
+            System.out.println(Arrays.toString(dataArray));
 
 
             packetToSend = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);//create a new packet to send data
@@ -88,6 +96,8 @@ public class FloorSubsystem implements Runnable {
 
             sendReceiveSocket.send(packetToSend);//send packet
             System.out.println(new String(packetToSend.getData(), 0, packetToSend.getLength()));
+            Thread.sleep(5000);
+
         }
 
 
@@ -151,6 +161,10 @@ public class FloorSubsystem implements Runnable {
     public String getDataString(){
         return dataString;
     }
+
+    public int getPort(){
+        return port;
+    }
 //-------------------------------------------------------------------------------------------------------------------------------------
 
     /**
@@ -207,12 +221,12 @@ public class FloorSubsystem implements Runnable {
      * @throws ParseException
      */
     private void convertTime(String dateString) throws ParseException {
-        dataString = dateString;
+        timeString = dateString;
         SimpleDateFormat format = new SimpleDateFormat("hh:mm:ss");
         Date date1 = format.parse(dateString);
         Timestamp ts = new Timestamp(date1.getTime());
         this.time = ts;
-        System.out.println("Time: "+this.time);
+        System.out.println("\nTime: "+this.time);
 
     }
 
@@ -235,7 +249,7 @@ public class FloorSubsystem implements Runnable {
         inputInfo.put("floorNumber", this.floorNumber);
         inputInfo.put("direction", this.direction);
         inputInfo.put("elevatorButton", this.elevatorButton);
-        floorData.add(new FloorData(this.floorNumber, direction, this.elevatorButton));
+        floorData.add(new FloorData(this. timeString,this.floorNumber, direction, this.elevatorButton));
         System.out.println("Floor: "+this.floorNumber+"\n"+"Floor Button: "+this.direction+"\n"+"Car Button: "+this.elevatorButton);
 
     }
@@ -262,7 +276,7 @@ public class FloorSubsystem implements Runnable {
      */
     public void receiveSchedulerInfo(String currentElevatorFloor, String direction) {
         this.currentElevatorFloor = Integer.parseInt(currentElevatorFloor);
-        this.direction = 1;//scheduler.getDirection();
+        this.direction = Integer.parseInt(direction);
 
         elevatorInfo.add(this.currentElevatorFloor);
         elevatorInfo.add(this.direction);
@@ -283,7 +297,7 @@ public class FloorSubsystem implements Runnable {
         }
         try {
             sendAndReceiveInfoInPacket();
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
 
@@ -293,20 +307,20 @@ public class FloorSubsystem implements Runnable {
     }
 
     public static void main(String[] args) throws IOException, ParseException {
-        Elevator elevator = new Elevator();
-        Scheduler scheduler = new Scheduler(2, 6);
-        FloorSubsystem f = new FloorSubsystem(scheduler, "elevatorInputs.txt");
+        //Elevator elevator = new Elevator();
+        Scheduler scheduler = new Scheduler(2, 6, 22);
+        FloorSubsystem f = new FloorSubsystem("elevatorInputs.txt", 21);
         //ElevatorSubsystem e = new ElevatorSubsystem();
-        f.readInputFile();
-        f.printInfo();
+        //f.readInputFile();
+        //f.printInfo();
         //System.out.println(f.getDataString());
         //f.sendInfoInPacket();
 
-        //Thread floorSubsystem = new Thread(f);
-        //Thread schedulerThread = new Thread(scheduler);
+        Thread floorSubsystem = new Thread(f);
+        Thread schedulerThread = new Thread(scheduler);
         //Thread elevatorSystem = new Thread(e);
-        //floorSubsystem.start();
-        //schedulerThread.start();
+        floorSubsystem.start();
+        schedulerThread.start();
         //elevatorSystem.start();
         //System.out.println(f.readInputFile("elevatorInputs.txt"));
     }

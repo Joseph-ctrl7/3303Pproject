@@ -2,14 +2,16 @@ import java.sql.Timestamp;
 
 public class FloorData {
 
-    private Timestamp time;
+    private String time;
     private String direction;
     private int floorNumber;
     private Floor floor;
     private int currentElevatorFloor;
     private int elevatorButton;
+    private boolean requestMet = false;
 
-    public FloorData(int floorNumber, String direction, int elevatorButton) {
+    public FloorData(String time, int floorNumber, String direction, int elevatorButton) {
+        this.time = time;
         this.floorNumber = floorNumber;
         this.direction = direction;
         this.elevatorButton = elevatorButton;
@@ -24,6 +26,15 @@ public class FloorData {
     }
     public String getDirection(){
         return direction;
+    }
+    public String getTime(){
+        return time;
+    }
+    public void setRequestMet(boolean b){
+        this.requestMet = b;
+    }
+    public boolean getRequestMet(){
+        return requestMet;
     }
 
 }
