@@ -15,6 +15,10 @@ Scheduler - This class is the bridge between the Elevator and the Floor systems.
 
 TestCases - This class is used to run tests on the whole system.
 
+State -  describes when the elevator is starting, moving, stopping and when the doors are opening and closing, whether the elevator has reached its destination, stopped at a floor and opened its doors
+
+EndState - This is a subclass of State describing when the doors are opening and when passengers are entering, where the elevator is heading to stop and let passengers in
+
 
 System Flow:
 -	Floor requests an elevator and sends it to the scheduler
