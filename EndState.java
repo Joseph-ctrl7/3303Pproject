@@ -49,5 +49,17 @@ public class EndState extends State {
 		}
 		
 	}
+	/**
+	 * checks if the elevator moving or request  completed
+	 */
+	public void moveElevator() {
+		try {
+			System.out.println("Elevator completed request");
+			Thread.sleep(CloseDoorTime);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
+	}
 
 }
