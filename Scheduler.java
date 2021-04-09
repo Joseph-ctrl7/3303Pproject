@@ -85,7 +85,7 @@ public class Scheduler implements Runnable {
     }
 
     /**
-     * this method is used to receive and process packets from both the elevatorSubsystem and the floorSubsystem
+     * this method is used to receive and process packets from the elevator, elevatorSubsystem and the floorSubsystem
      * @throws UnknownHostException
      */
     public void receiveAndProcessPacket() throws UnknownHostException {
@@ -495,7 +495,7 @@ public class Scheduler implements Runnable {
             e.printStackTrace();
         }
         try {
-            receiveAndProcessPacket();//continually receive and process packets
+            receiveAndProcessPacket();//continually receive and process packet
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
