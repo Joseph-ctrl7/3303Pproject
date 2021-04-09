@@ -74,16 +74,15 @@ public class FloorSubsystem implements Runnable {
             byte[] dataStringArr = dataString.getBytes();
             byte[] dataArray;
             if(f.getDirection().equals("Down")){
-                dataArray = new byte[25];
+                dataArray = new byte[dataStringArr.length];
             }else {
-                dataArray = new byte[23];
+                dataArray = new byte[dataStringArr.length];
             }
             System.arraycopy(dataStringArr, 0, dataArray, 0, dataStringArr.length);
             System.out.println(Arrays.toString(dataArray));
 
 
             packetToSend = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);//create a new packet to send data
-
             System.out.println("\nFloorSubsystem: Sending packet:");
             System.out.println("To Scheduler: " + packetToSend.getAddress());
             System.out.println("Destination host port: " + packetToSend.getPort());
@@ -96,7 +95,7 @@ public class FloorSubsystem implements Runnable {
 
             sendReceiveSocket.send(packetToSend);//send packet
             System.out.println(new String(packetToSend.getData(), 0, packetToSend.getLength()));
-            Thread.sleep(5000);
+            //Thread.sleep(5000);
 
         }
 
@@ -193,7 +192,6 @@ public class FloorSubsystem implements Runnable {
             Scanner s = new Scanner(texts).useDelimiter(" ");
             this.convertTime(s.next());
             this.convertInfoToInt(s.next(), s.next(), s.next());
-
         }
 
         notifyAll();
@@ -253,14 +251,7 @@ public class FloorSubsystem implements Runnable {
         System.out.println("Floor: "+this.floorNumber+"\n"+"Floor Button: "+this.direction+"\n"+"Car Button: "+this.elevatorButton);
 
     }
-    public void printInfo(){
-        /*for (String name: inputInfo.keySet()){
-            String key = name;
-            String value = inputInfo.get(name).toString();
-            System.out.println(key + " " + value);
-        }*/
-        System.out.println(floorData);
-    }
+
 
     /**
      * notifies floor about the location of the elevator
