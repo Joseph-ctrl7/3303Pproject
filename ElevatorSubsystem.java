@@ -298,13 +298,13 @@ public class ElevatorSubsystem implements Runnable{
                 //Thread.sleep(2000); //wait for elevator to be notified
                 //if(scheduler.notifyAboutFloor(true) == true){
                     doorState = ElevatorDoorState.OPEN;
-                    elevator.openDoors();
+                    elevator.openDoors(6000);
                 //}
             case OPEN:
                 operateDoors = false;
                 Thread.sleep(2000); // wait a while before doors close
                 doorState = ElevatorDoorState.CLOSE;
-                elevator.closeDoors();
+                elevator.closeDoors(6000);
         }
         operateDoors = true;
 

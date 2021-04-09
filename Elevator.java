@@ -125,8 +125,8 @@ public class Elevator implements Runnable {
     }
 
 
-    public synchronized void openDoors() throws InterruptedException {
-        Time timer = new Time(6000);
+    public synchronized void openDoors(int duration) throws InterruptedException {
+        Time timer = new Time(duration);
         Thread t = new Thread(timer);//make a new timer thread
         t.start();//start the thread for the given duration
         System.out.println("port:"+e.getPort()+" Elevator Doors Opening........");
@@ -140,8 +140,8 @@ public class Elevator implements Runnable {
         notifyAll();
     }
 
-    public synchronized void closeDoors() throws InterruptedException {
-        Time timer = new Time(6000);
+    public synchronized void closeDoors(int duration) throws InterruptedException {
+        Time timer = new Time(duration);
         Thread t = new Thread(timer);
         t.start();//start the timer thread for the given duration
         System.out.println("port:"+e.getPort()+" Elevator Doors Closing........");
@@ -197,7 +197,7 @@ public class Elevator implements Runnable {
      * this method starts the motor of the elevator and takes it to the requested floor
      * @param currentElevatorFloor where the elevator is currently at
      */
-    public synchronized void startMotor(int currentElevatorFloor) throws InterruptedException, IOException {
+    public synchronized void startMotor(int currentElevatorFloor, long duration) throws InterruptedException, IOException {
         Collections.sort(floorRequests);
         hasArrived = false;
         Iterator<Integer> iter = floors.iterator();
@@ -210,7 +210,7 @@ public class Elevator implements Runnable {
                 System.out.println(floorRequests.toString());
                 if (currentElevatorFloor > floorRequests.get(0)) {//if the current elevator floor is above the first request, then elevator moves down
                     Collections.reverse(floors);
-                    Time timer = new Time(6000);
+                    Time timer = new Time(duration);
                     Thread t = new Thread(timer);
                     System.out.println("port:" + e.getPort() + " Elevator is currently at floor " + currentElevatorFloor);
                     this.state = State.MOVING_DOWN;
@@ -223,7 +223,7 @@ public class Elevator implements Runnable {
                     t.start();// start the timer
                     this.pause(5, timer);
                     if (timer.countCompleted()) {//if timer finishes before elevator gets to next floor
-                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");
+                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
                         requestStop();//request stop and shut down the elevator thread
                         return;
@@ -232,7 +232,7 @@ public class Elevator implements Runnable {
                 if (currentElevatorFloor < floorRequests.get(0)) {//if the current elevator floor is below the first request, then elevator moves up
                     Collections.sort(floors);
                     Collections.sort(floorRequests);
-                    Time timer = new Time(6000);
+                    Time timer = new Time(duration);
                     Thread t = new Thread(timer);
                     System.out.println("port:" + e.getPort() + " Elevator is currently at floor " + currentElevatorFloor);
                     this.state = State.MOVING_UP;
@@ -245,7 +245,7 @@ public class Elevator implements Runnable {
                     t.start();//start timer
                     this.pause(5, timer);
                     if (timer.countCompleted()) {//if timer finishes before elevator gets to next floor
-                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");
+                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
                         requestStop();//request stop and shut down the elevator thread
                         return;
@@ -276,7 +276,7 @@ public class Elevator implements Runnable {
                 if (currentElevatorFloor > destinationRequests.get(0)) {//if elevator is above destination floor, elevator moves up
                     Collections.reverse(floors);
                     Collections.reverse(floorRequests);
-                    Time timer = new Time(6000);
+                    Time timer = new Time(duration);
                     Thread t = new Thread(timer);
                     System.out.println("port:" + e.getPort() + " Elevator is currently at floor " + currentElevatorFloor);
                     this.state = State.MOVING_DOWN;
@@ -289,7 +289,7 @@ public class Elevator implements Runnable {
                     t.start();
                     this.pause(5, timer);
                     if (timer.countCompleted()) {
-                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");
+                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
                         requestStop();
                         return;
@@ -298,7 +298,7 @@ public class Elevator implements Runnable {
                 if (currentElevatorFloor < destinationRequests.get(0)) {//if elevator is below destination floor, elevator moves down
                     Collections.sort(floors);
                     //Collections.sort(destinationRequests);
-                    Time timer = new Time(6000);
+                    Time timer = new Time(duration);
                     Thread t = new Thread(timer);
                     System.out.println("port:" + e.getPort() + " Elevator is currently at floor " + currentElevatorFloor);
                     e.setCurrentFloor(currentElevatorFloor);
@@ -311,7 +311,7 @@ public class Elevator implements Runnable {
                     t.start();
                     this.pause(5, timer);
                     if (timer.countCompleted()) {
-                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");
+                        System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
                         requestStop();
                         return;
@@ -376,9 +376,9 @@ public class Elevator implements Runnable {
         String arr[] = received.split(" ");// split the received packet into a String array
         System.out.println(Arrays.toString(arr));
         if(arr[0].equals("Door")){// if a door request is received from the scheduler, open or close doors
-            openDoors();
+            openDoors(6000);
             Thread.sleep(2000);//passenger wait time
-            closeDoors();
+            closeDoors(6000);
             notifyAll();
             //receiveAndSend();
 
@@ -422,12 +422,12 @@ public class Elevator implements Runnable {
     @Override
     public void run() {
         try {
-            this.startMotor(e.getCurrentFloor());
+            this.startMotor(e.getCurrentFloor(), 6000);
         } catch (InterruptedException | IOException interruptedException) {
             interruptedException.printStackTrace();
         }
-        if(stopRequested){
-            return;
+        if(stopRequested){//if fault erupts in an elevator
+            return;//shut down elevator thread
         }
     }
 
@@ -444,7 +444,8 @@ public class Elevator implements Runnable {
         es.addFloorRequests(3);
         es.addDestinationRequests(2);
         es.addDestinationRequests(5);
-        es.startMotor(5);
+        //es.startMotor(5, 3000);
+        es.openDoors(1000);
 /*
         ElevatorSubsystem e = new ElevatorSubsystem(28, 6);
         Elevator es = new Elevator(e, 6);
