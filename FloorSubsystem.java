@@ -46,7 +46,7 @@ public class FloorSubsystem implements Runnable {
 
 
     public FloorSubsystem(String inputFile, int port){
-        this.scheduler = scheduler;
+        //this.scheduler = scheduler;
         this.inputFile = inputFile;
         inputInfo = new HashMap<String, Integer>();
         elevatorInfo = new ArrayList<>();

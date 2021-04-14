@@ -61,6 +61,24 @@ public class Scheduler implements Runnable {
     public enum SchedulerStates {LISTENING, RECEIVED, ELEVATORINFO, FLOORINFO}
 
 
+    public Scheduler(int numberOfElevators, int numberOfFloors) {
+        this.numberOfElevators = numberOfElevators;
+        this.numberOfFloors = numberOfFloors;
+        elevators = new HashMap();
+        floorRequests = new HashMap<>();
+        destinationRequests = new HashMap<>();
+        inputInfo = new HashMap();
+        subsystemData = new HashMap();
+        requests = new ArrayList<>();
+        elevatorData = new ArrayList<>();
+        pendingRequests = new ArrayList<>();
+        this.elevator = elevator;
+        state = SchedulerStates.LISTENING;
+        numbers = new ArrayList();
+        for (int i=0; i<numberOfFloors; i++){
+            numbers.add(i);
+        }
+    }
     public Scheduler(int numberOfElevators, int numberOfFloors, int port) throws SocketException {
         this.numberOfElevators = numberOfElevators;
         this.numberOfFloors = numberOfFloors;
@@ -244,8 +262,8 @@ public class Scheduler implements Runnable {
      * this method gets the location of all the elevators in the building
      */
     public void getLocations(){
-            for(Map.Entry<Integer, ElevatorSubsystem> e : elevators.entrySet()){
-                System.out.println( e.getValue().getCurrentFloor());
+        for(Map.Entry<Integer, ElevatorSubsystem> e : elevators.entrySet()){
+            System.out.println( e.getValue().getCurrentFloor());
         }
     }
 
@@ -462,6 +480,7 @@ public class Scheduler implements Runnable {
                     state = SchedulerStates.RECEIVED;
                     this.dataReceived = false;
                 }
+                break;
 
             case RECEIVED:
                 if(this.floorInfoReceived == true){
@@ -475,6 +494,7 @@ public class Scheduler implements Runnable {
                     state = SchedulerStates.ELEVATORINFO;
                     this.elevatorInfoReceived = false; //clear flag
                 }
+                break;
 
             case FLOORINFO:
                 System.out.println("Going back to listen for packets..................");
@@ -507,7 +527,7 @@ public class Scheduler implements Runnable {
 
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
-        Scheduler s = new Scheduler(2, 6, 22);
+        Scheduler s = new Scheduler(4, 22, 22);
         Thread schedulerThread = new Thread(s);
         schedulerThread.start();
         //FloorSubsystem f = new FloorSubsystem("elevatorInputs.txt", 21);
@@ -517,7 +537,7 @@ public class Scheduler implements Runnable {
         //Thread el = new Thread(es);
         //el.start();
         //InetAddress address2 = InetAddress.getByName("208.67.222.222");
-       // System.out.println(address2.getHostName());
+        // System.out.println(address2.getHostName());
         //String j = "hello world";
         //String arr[] = j.split(" ");
         //System.out.println(Arrays.toString(arr));

@@ -8,6 +8,7 @@
  *
  */
 
+
 import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public class ElevatorSubsystem implements Runnable{
     private boolean stopRequested = false;
     DatagramPacket sendPacket, receivePacket;
     DatagramSocket receiveSocket, sendSocket;
+    UI gui;
 
 
     public enum ElevatorMovingState {UP, DOWN, IDLE};
@@ -50,18 +52,19 @@ public class ElevatorSubsystem implements Runnable{
 
     public ElevatorSubsystem(){}
 
-    public ElevatorSubsystem(int port, int numOfFloors) throws SocketException {
+    public ElevatorSubsystem(int port, int numOfFloors, UI gui) throws SocketException {
         //this.scheduler = scheduler;
+        this.gui = gui;
         elevatorData = "";
         this.port = port;
-        elevator = new Elevator(this, numOfFloors);
+        elevator = new Elevator(this, numOfFloors, this.gui);
         elevatorInfo = new ArrayList<>();
         floorRequests = new ArrayList<>();
         destinationRequests = new ArrayList<>();
         state = ElevatorMovingState.IDLE;
         doorState = ElevatorDoorState.CLOSE;
         Random rand = new Random();
-        currentElevatorFloor = rand.nextInt(6); //elevator goes up to the 6th floor
+        currentElevatorFloor = rand.nextInt(22); //elevator goes up to the 6th floor
         this.numOfFloors = numOfFloors;
         floors = new ArrayList<>();
         for(int i=0; i<numOfFloors; i++){
@@ -192,7 +195,7 @@ public class ElevatorSubsystem implements Runnable{
     public void sendElevatorData() throws UnknownHostException {
         String elevatorData = "ElevatorData "+state.toString()+" "+currentElevatorFloor+ " "+port; //store the data gotten from the elevator
         byte elevatorStringArr[] = elevatorData.getBytes();
-        byte[] dataArray = new byte[22];
+        byte[] dataArray = new byte[elevatorStringArr.length];
         System.arraycopy(elevatorStringArr, 0, dataArray, 0, elevatorStringArr.length);
         //send packet back to scheduler
         sendPacket = new DatagramPacket(dataArray, dataArray.length, InetAddress.getLocalHost(), 22);
@@ -339,8 +342,9 @@ public class ElevatorSubsystem implements Runnable{
        //Thread el = new Thread(es);
        // Thread elevatorSystem = new Thread(e);
        //el.start();
-       for(int i = 0; i < 2; i++){
-           ElevatorSubsystem e = new ElevatorSubsystem(28+i, 6);
+        UI gui = new UI();
+       for(int i = 0; i < 4; i++){
+           ElevatorSubsystem e = new ElevatorSubsystem(28+i, 22, gui);
            Thread t = new Thread(e);
            t.start();
        }

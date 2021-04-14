@@ -25,21 +25,7 @@ public class Time implements Runnable {
         return counterIsDone;
     }
 
-    public void endTime(){
-        endTime = System.currentTimeMillis();
-        //duration = endTime-startTime;
-        //System.out.println("Event duration: "+duration);
-    }
 
-    public void detectDoorFault(long expectedTime){
-        if(duration > expectedTime + 15){
-            System.out.println("DOOR FAULT: please wait few seconds");
-        }
-    }
-
-    public void detectElevatorFault(long expectedTime){
-
-    }
 
     public void checkTime(long n) throws InterruptedException {
         startTime();
