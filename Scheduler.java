@@ -20,6 +20,7 @@ public class Scheduler implements Runnable {
     private boolean dataReceived = false; // if any piece of data either from elevator or floor subsystem is received
     private boolean elevatorInfoReceived = false; //info from ElevatorSubsystem
     private boolean floorInfoReceived = false; //info from FloorSubsystem
+    private boolean hasArrived = false;
     private int direction;
     private int floorNumber;
     private int elevatorButton;
@@ -121,6 +122,7 @@ public class Scheduler implements Runnable {
                     }
                     if (floorRequests.isEmpty()) { //If there are no floor requests to forward
                         if(destinationRequests.containsKey(Integer.parseInt(arr[2]))){//check if destinationRequests contains the specified destination
+                            hasArrived = true;
                             ackPacket = new DatagramPacket(doorRequest, doorRequest.length, local, receivePacket.getPort());
                             receiveSocket.send(ackPacket);//if true send a door request
                             System.out.println("Door request sent for floor: "+Integer.parseInt(arr[2]));
@@ -128,6 +130,7 @@ public class Scheduler implements Runnable {
                         }
                     } else {
                         if(floorRequests.containsKey(Integer.parseInt(arr[2]))){//if floorRequests contains the specified request
+                            hasArrived = true;
                             ackPacket = new DatagramPacket(doorRequest, doorRequest.length, local, receivePacket.getPort());
                             receiveSocket.send(ackPacket);//send a door request
                             System.out.println("Door request sent for floor: " + Integer.parseInt(arr[2]));
@@ -159,11 +162,12 @@ public class Scheduler implements Runnable {
                         }
 
                     }
-                    if(arr[0].equals("ElevatorData")){
+                    if(arr[0].equals("ElevatorData")){//receives locations of all elevators
                         elevatorData.add(new ElevatorData(Integer.parseInt(arr[2]), Integer.parseInt(arr[3]), arr[1]));
                         System.out.println(elevatorData.size());
                     }
                 }
+                hasArrived = false;
 
             }
 

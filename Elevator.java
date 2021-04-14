@@ -444,7 +444,7 @@ public class Elevator implements Runnable {
         es.addFloorRequests(3);
         es.addDestinationRequests(2);
         es.addDestinationRequests(5);
-        //es.startMotor(5, 3000);
+        es.startMotor(5, 3000);
         es.openDoors(1000);
 /*
         ElevatorSubsystem e = new ElevatorSubsystem(28, 6);
