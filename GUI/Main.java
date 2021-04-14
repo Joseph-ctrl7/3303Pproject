@@ -1,8 +1,7 @@
+package guiElev;
+
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -13,12 +12,27 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.Border;
 
-public class Main implements ActionListener {
+public class Main  {
 
+	static int currentFloor1;
+	static int currentFloor2;
+	static int currentFloor3;
+	static int currentFloor4;
 	JCheckBox checkBox1;
 	JCheckBox checkBox2;
 	ImageIcon xIcon;
 	ImageIcon checkIcon;
+	JTextField textField2;
+	JTextField textField3;
+	JTextField textField4;
+	JTextField textField1;	
+	
+	public static final int WORKING = 0;
+	public static final int STUCK = 1;
+	public static final int ARRIVED = 2;
+	public static final int MOVING = 3;
+
+
 
 	public static void main(String[] args) {
 
@@ -28,19 +42,23 @@ public class Main implements ActionListener {
 		ImageIcon gCirc = new ImageIcon("55.png");
 		
 		JTextField textField1 = new JTextField();
-		textField1.setPreferredSize(new Dimension(20,40));
+		textField1.setPreferredSize(new Dimension(100,40));
+		textField1.setText("Current Floor: " + currentFloor1);
 		textField1.setEditable(false);
 		
 		JTextField textField2 = new JTextField();
-		textField2.setPreferredSize(new Dimension(20,40));
+		textField2.setPreferredSize(new Dimension(100,40));
+		textField2.setText("Current Floor: " + currentFloor2);
 		textField2.setEditable(false);
 		
 		JTextField textField3 = new JTextField();
-		textField3.setPreferredSize(new Dimension(20,40));
+		textField3.setPreferredSize(new Dimension(100,40));
+		textField3.setText("Current Floor: " + currentFloor3);
 		textField3.setEditable(false);
 		
 		JTextField textField4 = new JTextField();
-		textField4.setPreferredSize(new Dimension(20,40));
+		textField4.setPreferredSize(new Dimension(100,40));
+		textField4.setText("Current Floor: " + currentFloor4);
 		textField4.setEditable(false);
 		
 		JPanel panel1 = new JPanel();
@@ -148,6 +166,7 @@ public class Main implements ActionListener {
 		label4.setVerticalAlignment(JLabel.TOP);
 		label4.setHorizontalAlignment(JLabel.LEFT);
 		label4.setBounds(0, 0, 150, 150);
+				
 		
 		JFrame frame = new JFrame();
 		frame.setSize(700,700); //sets dimension
@@ -177,11 +196,40 @@ public class Main implements ActionListener {
 		panel3.add(textField3);
 		panel4.add(textField4);
 	}
-
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
+	public void setCurrentFloor1(int currentFloor1) {
+		textField1.setText("Current Floor: " + currentFloor1);
+	}
+	public void setCurrentFloor2(int currentFloor2) {
+		textField2.setText("Current Floor: " + currentFloor2);
+	}
+	public void setCurrentFloor3(int currentFloor3) {
+		textField3.setText("Current Floor: " + currentFloor3);
+	}
+	public void setCurrentFloor4(int currentFloor4) {
+		textField4.setText("Current Floor: " + currentFloor4);
 		
 	}
+	public void setElevatorDoor(int status) {
+		if(status == WORKING) {
+			checkBox1.setSelected(true);				
+		}
+		else if(status == STUCK) {
+			checkBox1.setSelected(false);
+		}
+		else if(status == ARRIVED) {
+			 checkBox2.setSelected(true);
+		}
+		else if(status == MOVING) {
+			 checkBox2.setSelected(false);				
+		}
+	}
+	
+	
+	
 
-}
+	
+	
+
+	}
+
+
