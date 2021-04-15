@@ -15,10 +15,13 @@ Scheduler - This class is the bridge between the Elevator and the Floor systems.
 
 TestCases - This class is used to run tests on the whole system.
 
-State -  describes when the elevator is starting, moving, stopping and when the doors are opening and closing, whether the elevator has reached its destination, stopped at a floor and opened its doors
+State -  This class describes when the elevator is starting, moving, stopping and when the doors are opening and closing, whether the elevator has reached its destination, stopped at a floor and opened its doors
 
 EndState - This is a subclass of State describing when the doors are opening and when passengers are entering, where the elevator is heading to stop and let passengers in
-GUI -
+
+UI - This class contains the GUI interface. It consists of icons depicting when elevator doors open/close, a checkbox that shows the elevator status (✅ == working elevator, ❌ == elevator not working), an elevator arrival LED that turns green when the elevator and a checkbox that shows the current floor the elevator is at.
+
+Time - This class contains the timer for the faults.
 
 
 System Flow:
