@@ -35,4 +35,5 @@ System Flow:
 -	Elevator subsystem relays it to the appropriate elevator
 -	Elevator that receives the request responds to the scheduler and updates it about it's status
 
+We would like for the demo video to be used for grading instead of the presentation.
 
