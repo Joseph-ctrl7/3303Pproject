@@ -7,9 +7,13 @@ Elevator - This class is controlled by the ElevatorSubsystem. It handles movemen
 
 ElevatorSubsystem - This class manages sending and receiving of requests from the scheduler and notifies the Elevator class to perform specific tasks.
 
+ElevatorData - This class stores elevator data such as the current location of the elevator, the port and the state of the elevator.
+
 Floor - This class is controlled by the Floorsubsystem. It handles floor requests and it has it's specific floor number, car button and floor lamps. 
 
 FloorSubsystem- This class manages sending and receiving of requests from the Scheduler. The FloorSubsystem reads in events using the following format : Time, floor or elevator number, and button. 
+
+FloorData - This class stores floor data such as time, floor number (the destination floor), direction and elevator button. These are gotten from the input string. 
 
 Scheduler - This class is the bridge between the Elevator and the Floor systems. It receives request from the FloorSubsystem and also replies to requests from the Elevator when there is work to do.
 
