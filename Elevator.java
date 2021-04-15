@@ -28,8 +28,13 @@ public class Elevator implements Runnable {
 
     public static final int WORKING = 0;
     public static final int STUCK = 1;
-    public static final int ARRIVED = 2;
-    public static final int MOVING = 3;
+    public static final int OPENED = 2;
+    public static final int CLOSED = 3;
+    public static final int ARRIVED = 4;
+    public static final int MOVING_UP = 5;
+    public static final int MOVING_DOWN = 6;
+    public static final int IDLE = 7;
+    public static final int SHUTDOWN = 8;
     public int status = WORKING;
 
     private int floor;
@@ -54,6 +59,9 @@ public class Elevator implements Runnable {
     private int floorButton;
     private int currentFloor;
     private int numOfFloors;
+    private int timerDuration;
+    private int doorDuration;
+    private int elevatorDuration;
     private UI gui;
     DatagramSocket sendSocket;
 
@@ -72,6 +80,9 @@ public class Elevator implements Runnable {
         floorRequests = new ArrayList<>();
         destinationRequests = new ArrayList<>();
         initialTime = System.currentTimeMillis();
+        timerDuration = 6000;
+        doorDuration = 3000;
+        elevatorDuration = 5000;
         this.numOfFloors = numOfFloors;
         floors = new ArrayList<>();
         for(int i=0; i<numOfFloors; i++){
@@ -95,6 +106,9 @@ public class Elevator implements Runnable {
         floorRequests = new ArrayList<>();
         destinationRequests = new ArrayList<>();
         initialTime = System.currentTimeMillis();
+        timerDuration = 6000;
+        doorDuration = 3000;
+        elevatorDuration = 5000;
         this.numOfFloors = numOfFloors;
         floors = new ArrayList<>();
         for(int i=0; i<numOfFloors; i++){
@@ -155,35 +169,49 @@ public class Elevator implements Runnable {
     public void addDestinationRequests(int i){
         destinationRequests.add(i);
     }
+    public void setTimerDuration(int duration){
+        timerDuration = duration;
+    }
+    public void setDoorDuration(int duration){
+        doorDuration = duration;
+    }
+    public void setElevatorDuration(int duration){
+        elevatorDuration = duration;
+    }
 
 
     public synchronized void openDoors(int duration) throws InterruptedException {
-        Time timer = new Time(duration);
+        Time timer = new Time(timerDuration);
         Thread t = new Thread(timer);//make a new timer thread
         t.start();//start the thread for the given duration
         System.out.println("port:"+e.getPort()+" Elevator Doors Opening........");
-        gui.setElevatorDoorStatus(WORKING, e.getPort());
-        this.pause(3, timer);
+        //gui.setElevatorDoorStatus(WORKING, e.getPort());
+        int x = duration/1000;
+        this.pause(x, timer);
         if(timer.countCompleted()) {//if timer finished before doors could be opened
             System.out.println("DOOR FAULT: Please wait a few seconds...");
             gui.setElevatorDoorStatus(STUCK, 28);
-            Thread.sleep(2000);//since transient fault, wait a few seconds before doors fully open
+            Thread.sleep(4000);//since transient fault, wait a few seconds before doors fully open
         }
+        gui.setElevatorDoorStatus(OPENED, e.getPort());
         System.out.println("port:"+e.getPort()+" Elevator Doors Opened");
         openDoors = true;
         notifyAll();
     }
 
     public synchronized void closeDoors(int duration) throws InterruptedException {
-        Time timer = new Time(duration);
+        Time timer = new Time(timerDuration);
         Thread t = new Thread(timer);
         t.start();//start the timer thread for the given duration
         System.out.println("port:"+e.getPort()+" Elevator Doors Closing........");
-        this.pause(3, timer);
+        int x = duration/1000;
+        this.pause(x, timer);
         if(timer.countCompleted()) {//if timer finished before doors could be closed
             System.out.println("DOOR FAULT: Please wait a few seconds...");
-            Thread.sleep(2000);//since transient fault, wait a few seconds before doors fully close
+            gui.setElevatorDoorStatus(STUCK, e.getPort());
+            Thread.sleep(4000);//since transient fault, wait a few seconds before doors fully close
         }
+        gui.setElevatorDoorStatus(CLOSED, e.getPort());
         System.out.println("port:"+e.getPort()+" Elevator Doors Closed");
         doorClosed = true;
         notifyAll();
@@ -231,7 +259,7 @@ public class Elevator implements Runnable {
      * this method starts the motor of the elevator and takes it to the requested floor
      * @param currentElevatorFloor where the elevator is currently at
      */
-    public synchronized void startMotor(int currentElevatorFloor, long duration) throws InterruptedException, IOException {
+    public synchronized void startMotor(int currentElevatorFloor, int duration) throws InterruptedException, IOException {
         Collections.sort(floorRequests);
         hasArrived = false;
         Iterator<Integer> iter = floors.iterator();
@@ -247,6 +275,7 @@ public class Elevator implements Runnable {
                     Time timer = new Time(duration);
                     Thread t = new Thread(timer);
                     System.out.println("port:" + e.getPort() + " Elevator is currently at floor " + currentElevatorFloor);
+                    gui.setDirection(MOVING_DOWN, e.getPort());
                     gui.setCurrentFloor2(currentElevatorFloor, e.getPort());
                     this.state = State.MOVING_DOWN;
                     int nextFloor = currentElevatorFloor - 1;
@@ -255,11 +284,14 @@ public class Elevator implements Runnable {
                     //send("ArrivalNotification Floor " + currentElevatorFloor +" port: "+e.getPort());
                     System.out.println("port:" + e.getPort() + " Elevator is going DOWN to floor " + nextFloor);
                     currentElevatorFloor--;
+                    int x = elevatorDuration/1000;
                     t.start();// start the timer
-                    this.pause(5, timer);
+                    this.pause(x, timer);
                     if (timer.countCompleted()) {//if timer finishes before elevator gets to next floor
                         System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
+                        gui.setElevatorDoorStatus(SHUTDOWN, e.getPort());
+                        gui.setElevatorStatus(STUCK, e.getPort());
                         requestStop();//request stop and shut down the elevator thread
                         return;
                     }
@@ -270,6 +302,7 @@ public class Elevator implements Runnable {
                     Time timer = new Time(duration);
                     Thread t = new Thread(timer);
                     System.out.println("port:" + e.getPort() + " Elevator is currently at floor " + currentElevatorFloor);
+                    gui.setDirection(MOVING_UP, e.getPort());
                     gui.setCurrentFloor2(currentElevatorFloor, e.getPort());
                     this.state = State.MOVING_UP;
                     int nextFloor = currentElevatorFloor + 1;
@@ -278,11 +311,14 @@ public class Elevator implements Runnable {
                     //send("ArrivalNotification Floor " + currentElevatorFloor +" port: "+e.getPort());
                     System.out.println("port:" + e.getPort() + " Elevator is going UP to floor " + nextFloor);
                     currentElevatorFloor++;
+                    int x = elevatorDuration/1000;
                     t.start();//start timer
-                    this.pause(5, timer);
+                    this.pause(x, timer);
                     if (timer.countCompleted()) {//if timer finishes before elevator gets to next floor
                         System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
+                        gui.setElevatorDoorStatus(SHUTDOWN, e.getPort());
+                        gui.setElevatorStatus(STUCK, e.getPort());
                         requestStop();//request stop and shut down the elevator thread
                         return;
                     }
@@ -290,6 +326,7 @@ public class Elevator implements Runnable {
 
                 if(currentElevatorFloor == floorRequests.get(0)){//if elevator is on the request floor
                     System.out.println("port:"+e.getPort()+" Elevator has arrived at floor "+currentElevatorFloor);
+                    gui.setDirection(IDLE, e.getPort());
                     gui.setCurrentFloor2(currentElevatorFloor, e.getPort());
                     hasArrived = true;
                     this.currentFloor = currentElevatorFloor;
@@ -311,13 +348,14 @@ public class Elevator implements Runnable {
             int i = iter2.next();
             System.out.println(destinationRequests.toString());
             while(!destinationRequests.isEmpty()) {
-                if (currentElevatorFloor > destinationRequests.get(0)) {//if elevator is above destination floor, elevator moves up
+                if (currentElevatorFloor > destinationRequests.get(0)) {//if elevator is above destination floor, elevator moves down
                     Collections.reverse(floors);
                     Collections.reverse(floorRequests);
                     Time timer = new Time(duration);
                     Thread t = new Thread(timer);
                     System.out.println("port:" + e.getPort() + " Elevator is currently at floor " + currentElevatorFloor);
                     gui.setCurrentFloor2(currentElevatorFloor, e.getPort());
+                    gui.setDirection(MOVING_DOWN, e.getPort());
                     this.state = State.MOVING_DOWN;
                     int nextFloor = currentElevatorFloor - 1;
                     e.setCurrentFloor(currentElevatorFloor);
@@ -325,16 +363,19 @@ public class Elevator implements Runnable {
                     //send("ArrivalNotification Floor " + currentElevatorFloor +" port: "+e.getPort());
                     System.out.println("port:" + e.getPort() + " Elevator is going DOWN to floor " + nextFloor);
                     currentElevatorFloor--;
+                    int x = elevatorDuration/1000;
                     t.start();
-                    this.pause(5, timer);
+                    this.pause(x, timer);
                     if (timer.countCompleted()) {
                         System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
+                        gui.setElevatorDoorStatus(SHUTDOWN, e.getPort());
+                        gui.setElevatorStatus(STUCK, e.getPort());
                         requestStop();
                         return;
                     }
                 }
-                if (currentElevatorFloor < destinationRequests.get(0)) {//if elevator is below destination floor, elevator moves down
+                if (currentElevatorFloor < destinationRequests.get(0)) {//if elevator is below destination floor, elevator moves up
                     Collections.sort(floors);
                     //Collections.sort(destinationRequests);
                     Time timer = new Time(duration);
@@ -344,15 +385,19 @@ public class Elevator implements Runnable {
                     e.setCurrentFloor(currentElevatorFloor);
                     Thread.sleep(2000);
                     //send("ArrivalNotification Floor " + currentElevatorFloor +" port: "+e.getPort());
+                    gui.setDirection(MOVING_UP, e.getPort());
                     this.state = State.MOVING_UP;
                     int nextFloor = currentElevatorFloor + 1;
                     System.out.println("port:" + e.getPort() + " Elevator is going UP to floor " + nextFloor);
                     currentElevatorFloor++;
+                    int x = elevatorDuration/1000;
                     t.start();
-                    this.pause(5, timer);
+                    this.pause(x, timer);
                     if (timer.countCompleted()) {
                         System.out.println("ELEVATOR FAULT: Shutting Down Elevator...");//since hard fault, elevator shuts down
                         Thread.sleep(2000);
+                        gui.setElevatorDoorStatus(SHUTDOWN, e.getPort());
+                        gui.setElevatorStatus(STUCK, e.getPort());
                         requestStop();
                         return;
                     }
@@ -360,6 +405,7 @@ public class Elevator implements Runnable {
 
                 if(currentElevatorFloor == destinationRequests.get(0)){// if elevator is on the destination floor
                     System.out.println("port:"+e.getPort()+" Elevator has arrived at floor "+currentElevatorFloor);
+                    gui.setDirection(IDLE, e.getPort());
                     gui.setCurrentFloor2(currentElevatorFloor, e.getPort());
                     hasArrived = true;
                     this.state = State.STOPPED;
@@ -418,9 +464,9 @@ public class Elevator implements Runnable {
         String arr[] = received.split(" ");// split the received packet into a String array
         System.out.println(Arrays.toString(arr));
         if(arr[0].equals("Door")){// if a door request is received from the scheduler, open or close doors
-            openDoors(6000);
+            openDoors(doorDuration);
             Thread.sleep(2000);//passenger wait time
-            closeDoors(6000);
+            closeDoors(doorDuration);
             notifyAll();
             //receiveAndSend();
 
@@ -464,7 +510,7 @@ public class Elevator implements Runnable {
     @Override
     public void run() {
         try {
-            this.startMotor(e.getCurrentFloor(), 6000);
+            this.startMotor(e.getCurrentFloor(), timerDuration);
         } catch (InterruptedException | IOException interruptedException) {
             interruptedException.printStackTrace();
         }
@@ -484,11 +530,11 @@ public class Elevator implements Runnable {
         ElevatorSubsystem e = new ElevatorSubsystem(28, 6, g);
         Elevator es = new Elevator(e, 6, g);
         //es.addFloorRequests(4);
-        //es.addFloorRequests(3);
+        es.addFloorRequests(3);
         //es.addDestinationRequests(2);
         //es.addDestinationRequests(5);
-        //es.startMotor(5, 6000);
-        es.openDoors(6000);
+        es.startMotor(5, 2000);
+        //es.openDoors(2000);
 /*
         ElevatorSubsystem e = new ElevatorSubsystem(28, 6);
         Elevator es = new Elevator(e, 6);

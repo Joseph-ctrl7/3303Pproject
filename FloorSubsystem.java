@@ -40,6 +40,7 @@ public class FloorSubsystem implements Runnable {
     private int port;
 
     DatagramSocket sendReceiveSocket;
+    DatagramSocket sendSocket;
     DatagramPacket packetToSend;
     DatagramPacket receivedPacket;
     DatagramPacket replyPacket;
@@ -56,6 +57,7 @@ public class FloorSubsystem implements Runnable {
 
         try {
             sendReceiveSocket = new DatagramSocket(port);
+            sendSocket = new DatagramSocket();
         } catch (SocketException se) {   // Can't create the socket.
             se.printStackTrace();
             System.exit(1);
@@ -132,6 +134,8 @@ public class FloorSubsystem implements Runnable {
     }
 
 
+
+
     //getters and setters for the fields in the floorSubsystem class---------------------------------------------------------------------
     public int getCurrentFloor() {
         return this.currentElevatorFloor;
@@ -191,7 +195,9 @@ public class FloorSubsystem implements Runnable {
         for(String texts = bufferedReader.readLine(); texts != null; texts = bufferedReader.readLine()) {
             Scanner s = new Scanner(texts).useDelimiter(" ");
             this.convertTime(s.next());
-            this.convertInfoToInt(s.next(), s.next(), s.next());
+            if(s.hasNext()) {
+                this.convertInfoToInt(s.next(), s.next(), s.next());
+            }
         }
 
         notifyAll();
@@ -219,12 +225,17 @@ public class FloorSubsystem implements Runnable {
      * @throws ParseException
      */
     private void convertTime(String dateString) throws ParseException {
-        timeString = dateString;
-        SimpleDateFormat format = new SimpleDateFormat("hh:mm:ss");
-        Date date1 = format.parse(dateString);
-        Timestamp ts = new Timestamp(date1.getTime());
-        this.time = ts;
-        System.out.println("\nTime: "+this.time);
+        //System.out.println(dateString);
+        if(dateString.equals("DOORFAULT") || dateString.equals("ELEVATORFAULT")){
+            System.out.println("faults received");
+        }else {
+            timeString = dateString;
+            SimpleDateFormat format = new SimpleDateFormat("hh:mm:ss");
+            Date date1 = format.parse(dateString);
+            Timestamp ts = new Timestamp(date1.getTime());
+            this.time = ts;
+            System.out.println("\nTime: " + this.time);
+        }
 
     }
 

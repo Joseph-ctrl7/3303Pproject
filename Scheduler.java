@@ -33,6 +33,7 @@ public class Scheduler implements Runnable {
     private Elevator elevator;
     private SchedulerStates state;
     private boolean floorNotified = false;
+    private boolean requestsEmpty = false;
     public ArrayList numbers;
     private Map<Integer, ElevatorSubsystem> elevators;
     private Map<Integer, FloorData> floorRequests;
@@ -118,7 +119,7 @@ public class Scheduler implements Runnable {
             byte[] doorRequest = "Door".getBytes();
             receivePacket = new DatagramPacket(data, data.length); //create the packet to recieve into
             int len = receivePacket.getLength();
-            while (true) { //loop infinitely
+            while (requestsEmpty != true) { //loop infinitely
                 receivePacket = new DatagramPacket(data, data.length);
                 receiveSocket.receive(receivePacket);//Recieve a packet
                 System.out.println("\nScheduler: Packet received:");
@@ -145,6 +146,10 @@ public class Scheduler implements Runnable {
                             receiveSocket.send(ackPacket);//if true send a door request
                             System.out.println("Door request sent for floor: "+Integer.parseInt(arr[2]));
                             destinationRequests.remove(Integer.parseInt(arr[2]));
+                            if(destinationRequests.isEmpty()){
+                                System.out.println("done");
+                                requestsEmpty = true;
+                            }
                         }
                     } else {
                         if(floorRequests.containsKey(Integer.parseInt(arr[2]))){//if floorRequests contains the specified request
@@ -185,6 +190,7 @@ public class Scheduler implements Runnable {
                         System.out.println(elevatorData.size());
                     }
                 }
+
                 hasArrived = false;
 
             }
@@ -192,6 +198,7 @@ public class Scheduler implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return;
     }
 
 
@@ -513,6 +520,7 @@ public class Scheduler implements Runnable {
 
     @Override
     public void run() {
+        long startTime = System.currentTimeMillis();
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
@@ -523,6 +531,8 @@ public class Scheduler implements Runnable {
         } catch (UnknownHostException e) {
             e.printStackTrace();
         }
+        long finishTime = System.currentTimeMillis() - startTime;
+        System.out.println("Elapsed Scheduler Time: "+finishTime);
     }
 
 

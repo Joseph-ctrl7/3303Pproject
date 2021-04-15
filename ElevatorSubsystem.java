@@ -186,6 +186,16 @@ public class ElevatorSubsystem implements Runnable{
         return operateDoors;
     }
 
+    public void setTimerDuration(int duration){
+        elevator.setTimerDuration(duration);
+    }
+    public void setDoorDuration(int duration){
+        elevator.setDoorDuration(duration);
+    }
+    public void setElevatorDuration(int duration){
+        elevator.setElevatorDuration(duration);
+    }
+
     //-------------------------------------------------------------------------------------------------------------------
 
 
@@ -343,11 +353,30 @@ public class ElevatorSubsystem implements Runnable{
        // Thread elevatorSystem = new Thread(e);
        //el.start();
         UI gui = new UI();
-       for(int i = 0; i < 4; i++){
-           ElevatorSubsystem e = new ElevatorSubsystem(28+i, 22, gui);
-           Thread t = new Thread(e);
-           t.start();
-       }
+        ElevatorSubsystem e = new ElevatorSubsystem(28, 22, gui);
+        ElevatorSubsystem e2 = new ElevatorSubsystem(29, 22, gui);
+        ElevatorSubsystem e3 = new ElevatorSubsystem(30, 22, gui);
+        ElevatorSubsystem e4 = new ElevatorSubsystem(31, 22, gui);
+        //---------------------------------------------------------------------------------------------------------------
+        //Test for elevator and door faults. Uncomment one of the elevators to set their wait time and simulate a fault!
+        //e.setElevatorDuration(7000);
+        //e2.setElevatorDuration(7000);
+        //e3.setElevatorDuration(7000);
+        //e4.setElevatorDuration(7000);
+        //e.setDoorDuration(7000);
+        //e2.setDoorDuration(7000);
+        //e3.setDoorDuration(7000);
+        //e4.setDoorDuration(7000);
+        //----------------------------------------------------------------------------------------------------------------
+        Thread t = new Thread(e);
+        Thread t2 = new Thread(e2);
+        Thread t3 = new Thread(e3);
+        Thread t4 = new Thread(e4);
+        t.start();
+        t2.start();
+        t3.start();
+        t4.start();
+
 /*
         Scheduler s = new Scheduler(2, 6, 22);
         Thread schedulerThread = new Thread(s);
